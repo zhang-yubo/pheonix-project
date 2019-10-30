@@ -51,7 +51,7 @@
 int TRANSMITPERIOD = 200; //transmit a packet to gateway so often (in ms)
 char payload[30];
 char buff[20];
-byte sendSize=31;
+int sendSize=31;
 boolean requestACK = false;
 boolean newGPSData = false;
 SPIFlash flash(SS_FLASHMEM, 0xEF30); //EF30 for 4mbit  Windbond chip (W25X40CL)
@@ -120,19 +120,24 @@ void ReceivePayWithEnd(){
   char c;
   while (Ar.available()>0 && newGPSData == false){
     c = Ar.read();
-    if (c != endMarker){
-      payload[i]=c;
-      i++;
-      if (i >= sizeof(payload)){
-        i = sizeof (payload) - 1;
+    if(c != '.'){
+      if (c != endMarker){
+        payload[i]=c;
+        i++;
+        if (i >= sizeof(payload)){
+          i = sizeof (payload) - 1;
+        }
+      }
+      else{
+        payload[i] = '\n';
+        payload[i+1] = '\0';
+        i = 0;
+        newGPSData == true;
       }
     }
-    else{
-      payload[i] = '\0';
-      i = 0;
-      newGPSData == true;
-    }
   }
+  for(int i = 0; i < sendSize; i++)
+        Serial.print((char)payload[i]);
 }
 
 
@@ -141,7 +146,6 @@ void loop() {
   if (Ar.available()>0){
     ReceivePayWithEnd();
   }
-  delay(1000);
   
   //process any serial input
   if (Serial.available() > 0)
@@ -230,7 +234,7 @@ void loop() {
       Serial.print("Sending[");
       Serial.print(sendSize);
       Serial.print("]: ");
-      for(byte i = 0; i < sendSize; i++)
+      for(int i = 0; i < sendSize; i++)
         Serial.print((char)payload[i]);
 
       if (radio.sendWithRetry(GATEWAYID, payload, sendSize))
