@@ -1,4 +1,3 @@
-
 // **********************************************************************************
 // Copyright Felix Rusu 2016, http://www.LowPowerLab.com/contact
 // **********************************************************************************
@@ -36,7 +35,7 @@
 #define FREQUENCY     RF69_433MHZ
 //#define FREQUENCY     RF69_868MHZ
 //#define FREQUENCY     RF69_915MHZ
-#define ENCRYPTKEY    "VCHS" //exactly the same 16 characters/bytes on all nodes!
+#define ENCRYPTKEY    "sampleEncryptKey" //exactly the same 16 characters/bytes on all nodes!
 #define IS_RFM69HW_HCW  //uncomment only for RFM69HW/HCW! Leave out if you have RFM69W/CW!
 //*********************************************************************************************
 //Auto Transmission Control - dials down transmit power to save battery
@@ -103,7 +102,8 @@ void setup() {
 
 byte ackCount=0;
 uint32_t packetCount = 0;
-boolean raw = false;
+boolean raw = true;
+boolean parsed = false;
 void loop() {
   //process any serial input
   if (Serial.available() > 0)
@@ -115,6 +115,10 @@ void loop() {
       radio.encrypt(ENCRYPTKEY);
     if (input == 'e') //e=disable encryption
       radio.encrypt(null);
+    if (input == 'P')
+    {
+      parsed = !parsed;
+    }
     if (input == 'p')
     {
       promiscuousMode = !promiscuousMode;
@@ -170,11 +174,14 @@ void loop() {
     {
       Serial.print("to [");Serial.print(radio.TARGETID, DEC);Serial.print("] ");
     }
+    if (parsed)
+    {
+      parseGPSData();
+    }
     if (raw){
       for (byte i = 0; i < radio.DATALEN; i++)
         Serial.print((char)radio.DATA[i]);
     }
-    parseGPSData();
     Serial.print("   [RX_RSSI:");Serial.print(radio.RSSI);Serial.print("]");
     
     if (radio.ACKRequested())
@@ -210,14 +217,50 @@ void Blink(byte PIN, int DELAY_MS)
   digitalWrite(PIN,LOW);
 }
 
+byte d_fix = 1;
+byte d_satellite = 2;
+byte d_longitude = 13;
+byte d_latitude = 16;
+byte d_altitude = 7;
+
+
 void parseGPSData(){
-  if (radio.DATA[1]=0)
-    Serial.println("NOT fixed");
+  byte c = 0;
+  if (radio.DATA[0]=0)
+    Serial.println("GPS NOT fixed");
   else{
-    Serial.println("FIXED");
+    Serial.println("GPS FIXED");
+    c++;
+
+    Serial.print("Fix quality");
+    for (byte i = c; i<c+d_fix; i++)
+    {
+      Serial.print(radio.DATA[c]);
+      c++;
+    }
+    Serial.println();
+
+    Serial.print("Number of Satellites:");
+    for (byte i = c; i<c+d_satellite; i++){
+      Serial.print(radio.DATA[c]);
+      c++;
+    }
+    Serial.println();
 
     Serial.print("Longitude:"); 
-    for (byte i = 3; i<16; i++)
-      Serial.print(radio.DATA[i]);
+    for (byte i = c; i<c+d_longitude; i++)
+    {
+      Serial.print(radio.DATA[c]);
+      c++;
+    }
+    Serial.println();
+
+    Serial.print("Latitude:");
+    for (byte i = c; i<c+d_latitude;i++){
+      Serial.print(radio.DATA[c]);
+      c++;
+    }
+    Serial.println();
+    Serial.println();
   }
 }
