@@ -36,7 +36,7 @@
 #define NETWORKID     100  //(range up to 255)
 #define GATEWAYID     1
 #define FREQUENCY   RF69_433MHZ
-#define ENCRYPTKEY    "VCHS" //exactly the same 16 characters/bytes on all nodes!
+#define ENCRYPTKEY    "sampleEncryptKey" //exactly the same 16 characters/bytes on all nodes!
 #define IS_RFM69HW_HCW  //only for RFM69HW/HCW
 //*********************************************************************************************
 #define ENABLE_ATC
@@ -49,9 +49,8 @@
 #endif
 
 int TRANSMITPERIOD = 200; //transmit a packet to gateway so often (in ms)
-char payload[30];
+char payload[50];
 char buff[20];
-int sendSize=31;
 boolean requestACK = false;
 boolean newGPSData = false;
 SPIFlash flash(SS_FLASHMEM, 0xEF30); //EF30 for 4mbit  Windbond chip (W25X40CL)
@@ -194,7 +193,6 @@ void loop() {
     }
   }
 
-
   //check for any received packets
   if (radio.receiveDone())
   {
@@ -216,19 +214,20 @@ void loop() {
   if (currPeriod != lastPeriod)
   {
     lastPeriod=currPeriod;
+    int sendSize = sizeof(payload);
 
     //send FLASH id
-    if(sendSize==0)
-    {
-      sprintf(buff, "FLASH_MEM_ID:0x%X", flash.readDeviceId());
-      byte buffLen=strlen(buff);
-      if (radio.sendWithRetry(GATEWAYID, buff, buffLen))
-        Serial.print(" ok!");
-      else Serial.print(" nothing...");
-      //sendSize = (sendSize + 1) % 31;
-    }
-    else
-    {
+//    if(sendSize==0)
+//    {
+//      sprintf(buff, "FLASH_MEM_ID:0x%X", flash.readDeviceId());
+//      byte buffLen=strlen(buff);
+//      if (radio.sendWithRetry(GATEWAYID, buff, buffLen))
+//        Serial.print(" ok!");
+//      else Serial.print(" nothing...");
+//      //sendSize = (sendSize + 1) % 31;
+//    }
+//    else
+//    {
       Serial.print("Sending[");
       Serial.print(sendSize);
       Serial.print("]: ");
@@ -238,7 +237,7 @@ void loop() {
       if (radio.sendWithRetry(GATEWAYID, payload, sendSize))
        Serial.print(" ok!");
       else Serial.print(" nothing...");
-    }
+//    }
     Serial.println();
     Blink(LED_BUILTIN,3);
   }
