@@ -11,12 +11,11 @@
 #include <SoftwareSerial.h>
 #include <math.h>
 
-SoftwareSerial mySerial(8, 7);
+SoftwareSerial GPSerial(8, 7);
 SoftwareSerial Mo (9,10);
-Adafruit_GPS GPS(&mySerial);
+Adafruit_GPS GPS(&GPSerial);
 
-#define GPSECHO  false
-
+boolean GPSECHO = true;
 void setup()
 {
 
@@ -46,12 +45,18 @@ void setup()
 
   delay(1000);
   // Ask for firmware version
-  mySerial.println(PMTK_Q_RELEASE);
+  GPSerial.println(PMTK_Q_RELEASE);
 }
 
 uint32_t timer = millis();
 void loop()
 {
+  if (Serial.available()>0){
+    char input = Serial.read();
+    if (input='R'){
+      GPSECHO = !GPSECHO;
+    }
+  }
   char c = GPS.read();
   // if you want to debug, this is a good time to do it!
   if ((c) && (GPSECHO))
@@ -72,33 +77,20 @@ void loop()
 
   if (millis() - timer > 2000) {
     timer = millis();
-    
-    if (GPS.fix) {
-      if (GPS.fix<10) Serial.print('0');
+
+      Mo.print(GPS.fix);
+      Mo.print(GPS.fixquality);
+  
       Serial.print(GPS.fix);
-      Serial.print(GPS.fixquality);
+      Serial.print(GPS.fixquality); //1 digit
+
+      if (GPS.satellites < 10) Serial.print('0');
+      Serial.print(GPS.satellites);
       
-//      if (GPS.latitude<10000) Serial.print('0');
-//      char latitude[14];
-//      char a_latitude[13];
-//      sprintf(latitude,"%.8f",GPS.latitude);
-//      removePoint(latitude,a_latitude);
-//      for(int i=0; i<sizeof(a_latitude); i++){
-//        Serial.print(latitude[i]);  //5+8 digits
-//      }
-//      Serial.print((int)GPS.latitude);
-//      Serial.print((int)((GPS.latitude-(int)GPS.latitude)*pow(10,2)));
       Serial.print(GPS.latitude,8);
       Serial.print(GPS.lat);
 
       if (GPS.longitude<10000) Serial.print('0');
-//      char longitude[16];
-//      char a_longitude[15];
-//      sprintf(longitude,"%.10f",GPS.longitude);
-//      removePoint(longitude,a_longitude);
-//      for(int i=0; i<sizeof(a_longitude); i++){
-//        Serial.print(a_longitude[i]); //5+10 digits total 
-//      }
       Serial.print(GPS.longitude,10);
       Serial.print(GPS.lon);
       
@@ -106,23 +98,13 @@ void loop()
         Serial.print('0');
       }
       Serial.print(GPS.altitude,2);
-
-//      char altitude[count_digits(GPS.altitude)+3];
-//      char a_altitude[count_digits(GPS.altitude)+2];
-//      sprintf(altitude,"%.2f",GPS.altitude);
-//      removePoint(altitude,a_altitude);
-//      for(int i=0; i<sizeof(a_longitude); i++){
-//        Serial.print(a_altitude[i]); //5+2 digits total
-//      }
       if (GPS.satellites<10) Serial.print('0');
       Serial.print(GPS.satellites); //2 digits total
 
       
-      if (GPS.fix<10) Mo.print('0');
-      Mo.print(GPS.fix);
-      Mo.print(GPS.fixquality);
+      
       if (GPS.latitude<10000) Mo.print('0'); //5+8 digits
-          
+      Mo.print(GPS.latitude,8);
       Mo.print(GPS.lat);
       if (GPS.longitude<10000) Mo.print('0');
       Mo.print(GPS.longitude, 10); //5+10 digits total 
@@ -131,11 +113,7 @@ void loop()
         Mo.print('0');
       }
       Mo.print(GPS.altitude,2); //5+2 digits total
-      if (GPS.satellites<10) Mo.print('0');
-      Mo.print(GPS.satellites); //2 digits total
     
-    }
-   //Mo.print("254TheDarkKnightVersion2.0");
    Serial.println();
    Mo.println();
   } 
