@@ -17,7 +17,7 @@
 #define NETWORKID     100  //(range up to 255)
 #define GATEWAYID     1
 #define FREQUENCY   RF69_433MHZ
-#define ENCRYPTKEY    "VCHS" //exactly the same 16 characters/bytes on all nodes!
+#define ENCRYPTKEY    "VCHSVCHSVCHSVCHS" //exactly the same 16 characters/bytes on all nodes!
 #define IS_RFM69HW_HCW  //only for RFM69HW/HCW
 #define ENABLE_ATC
 #define ATC_RSSI      -80
@@ -48,6 +48,7 @@ SoftwareSerial GPSerial(3, 2);
 Adafruit_GPS GPS(&GPSerial);
 
 boolean GPSECHO = false;
+boolean SEND = true;
 
 void setup()
 {
@@ -141,6 +142,9 @@ void loop()
       Serial.println("ms\n");
     }
 
+    if (input == 'S') 
+    SEND = !SEND;
+
   }
   char c = GPS.read();
   // if you want to debug, this is a good time to do it!
@@ -162,7 +166,7 @@ void loop()
 
   if (millis() - timer > TRANSMITPERIOD) {
     timer = millis();
-    
+    Serial.println(floatPrecision(1456.0447297598,6));
     if (GPS.fix) 
     {
       String data = "";
@@ -187,10 +191,10 @@ void loop()
       data += ",";
       data += GPS.fixquality;
       data += ",";
-      data += GPS.latitude;
+      data += floatPrecision(GPS.latitude,8);
       data += GPS.lat;
       data += ",";
-      data += GPS.longitude;
+      data += floatPrecision(GPS.longitude,8);
       data += GPS.lon;
       data += ",";
       data += GPS.altitude;
@@ -203,48 +207,74 @@ void loop()
       {
         payload[i]=data.charAt(i);
       }
-      
-      if (radio.receiveDone())
-      {
-        Serial.print('[');Serial.print(radio.SENDERID, DEC);Serial.print("] ");
-        for (byte i = 0; i < radio.DATALEN; i++)
-          Serial.print((char)radio.DATA[i]);
-        Serial.print("   [RX_RSSI:");Serial.print(radio.RSSI);Serial.print("]");
-      
-        if (radio.ACKRequested())
+      //Serial.println(GPS.longitude,8);
+
+      if (SEND){
+        if (radio.receiveDone())
         {
-          radio.sendACK();
-          Serial.print(" - ACK sent");
+          Serial.print('[');Serial.print(radio.SENDERID, DEC);Serial.print("] ");
+          for (byte i = 0; i < radio.DATALEN; i++)
+            Serial.print((char)radio.DATA[i]);
+          Serial.print("   [RX_RSSI:");Serial.print(radio.RSSI);Serial.print("]");
+        
+          if (radio.ACKRequested())
+          {
+            radio.sendACK();
+            Serial.print(" - ACK sent");
+          }
+          Blink(LED_BUILTIN,3);
+          Serial.println();
         }
-        Blink(LED_BUILTIN,3);
+    
+    
+        //send FLASH id
+        if(sendSize==0)
+        {
+          sprintf(buff, "FLASH_MEM_ID:0x%X", flash.readDeviceId());
+          byte buffLen=strlen(buff);
+          if (radio.sendWithRetry(GATEWAYID, buff, buffLen))
+            Serial.print(" connected!");
+          else Serial.print(" nothing...");
+        }
+        else
+        {
+          Serial.print("Sending[");
+          Serial.print(sendSize);
+          Serial.print("]: ");
+          for(int i = 0; i < sendSize; i++)
+            Serial.print((char)payload[i]);
+    
+          if (radio.sendWithRetry(GATEWAYID, payload, sendSize))
+           Serial.print("sent!");
+          else Serial.print(" nothing...");
+        }
         Serial.println();
+        Blink(LED_BUILTIN,3);
       }
-  
-  
-      //send FLASH id
-      if(sendSize==0)
-      {
-        sprintf(buff, "FLASH_MEM_ID:0x%X", flash.readDeviceId());
-        byte buffLen=strlen(buff);
-        if (radio.sendWithRetry(GATEWAYID, buff, buffLen))
-          Serial.print(" connected!");
-        else Serial.print(" nothing...");
-      }
-      else
-      {
-        Serial.print("Sending[");
-        Serial.print(sendSize);
-        Serial.print("]: ");
-        for(int i = 0; i < sendSize; i++)
-          Serial.print((char)payload[i]);
-  
-        if (radio.sendWithRetry(GATEWAYID, payload, sendSize))
-         Serial.print("sent!");
-        else Serial.print(" nothing...");
-      }
-      Serial.println();
-      Blink(LED_BUILTIN,3);
     }
   }
   
+}
+
+String floatPrecision(float fl,int pres)
+{
+   double f = fl;
+   int i= (int)f;
+   int dig = 0;
+   while (i != 0)
+   {
+     i /= 10;
+     dig++;
+   }
+   char a[pres+dig+1];
+   itoa((int)f,a,10);
+   a[dig] = '.';
+   f = f - (int)f;
+   for (int k=0; k<pres; k++)
+   {
+     f *=10;
+     a[dig+1+k] = (char)((int)f+48);
+     f = f - (int)f;
+   }
+   return a;
 }

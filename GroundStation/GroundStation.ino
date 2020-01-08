@@ -9,7 +9,7 @@
 #define FREQUENCY     RF69_433MHZ
 //#define FREQUENCY     RF69_868MHZ
 //#define FREQUENCY     RF69_915MHZ
-#define ENCRYPTKEY    "VCHS" //exactly the same 16 characters/bytes on all nodes!
+#define ENCRYPTKEY    "VCHSVCHSVCHSVCHS" //exactly the same 16 characters/bytes on all nodes!
 #define IS_RFM69HW_HCW  //uncomment only for RFM69HW/HCW! Leave out if you have RFM69W/CW!
 
 
@@ -71,6 +71,7 @@ void setup() {
 
 byte ackCount=0;
 uint32_t packetCount = 0;
+String data[];
 void loop() {
   //process any serial input
   if (Serial.available() > 0)
@@ -172,13 +173,8 @@ void Blink(byte PIN, int DELAY_MS)
 }
 
 void parseGPSData(){
-  if (radio.DATA[1]=0)
-    Serial.println("NOT fixed");
-  else{
-    Serial.println("FIXED");
-
-    Serial.print("Longitude:"); 
-    for (byte i = 3; i<16; i++)
-      Serial.print(radio.DATA[i]);
+  for (int i=0; i<radio.DATA.length; i++)
+  {
+    
   }
 }
