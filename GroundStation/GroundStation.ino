@@ -71,7 +71,7 @@ void setup() {
 
 byte ackCount=0;
 uint32_t packetCount = 0;
-String data[];
+char data[6][30];
 void loop() {
   //process any serial input
   if (Serial.available() > 0)
@@ -136,7 +136,15 @@ void loop() {
     {
       Serial.print("to [");Serial.print(radio.TARGETID, DEC);Serial.print("] ");
     }
-    parseGPSData();
+    storeData();
+    for (int i=0; i < sizeof (data); i++)
+    {
+      for (int j=0; j<sizeof(data[i]); j++)
+      {
+        Serial.print(data[i][j]); 
+      }
+      Serial.print(" $ ");
+    }
     Serial.print("   [RX_RSSI:");Serial.print(radio.RSSI);Serial.print("]");
     
     if (radio.ACKRequested())
@@ -172,9 +180,26 @@ void Blink(byte PIN, int DELAY_MS)
   digitalWrite(PIN,LOW);
 }
 
-void parseGPSData(){
-  for (int i=0; i<radio.DATA.length; i++)
+void storeData(){
+  for (int i=0; i< sizeof(data); i++)
   {
-    
+    for (int j=0; j<sizeof(data); j++)
+    {
+       data[i][j] = null; 
+    }
+  }
+  int c = 0;
+  for (int i=0; i< sizeof(radio.DATA); i++)
+  {
+    int flag = 0;
+    if(radio.DATA[i]==',')
+    {
+      c++;
+    }
+    else if(radio.DATA[i]>47 || radio.DATA[i]<58)
+    {
+      data[c][flag] = radio.DATA[i];
+      flag++;
+    }
   }
 }
