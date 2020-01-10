@@ -166,26 +166,9 @@ void loop()
 
   if (millis() - timer > TRANSMITPERIOD) {
     timer = millis();
-    Serial.println(floatPrecision(1456.0447297598,6));
     if (GPS.fix) 
     {
       String data = "";
-//      Serial.print(',');
-//      Serial.print(GPS.fixquality);
-//      Serial.print(',');
-//      
-//      Serial.print(GPS.latitude);
-//      Serial.print(GPS.lat);
-//      Serial.print(',');
-//      
-//      Serial.print(GPS.longitude);
-//      Serial.print(GPS.lon);
-//      Serial.print(',');
-//      
-//      Serial.print(GPS.altitude,3);
-//      Serial.print(',');
-//      
-//      Serial.print(GPS.satellites);
 
       data += GPS.fix;
       data += ",";
@@ -206,52 +189,60 @@ void loop()
       for (int i=0; i<sendSize; i++)
       {
         payload[i]=data.charAt(i);
-      }
-      //Serial.println(GPS.longitude,8);
-
-      if (SEND){
-        if (radio.receiveDone())
-        {
-          Serial.print('[');Serial.print(radio.SENDERID, DEC);Serial.print("] ");
-          for (byte i = 0; i < radio.DATALEN; i++)
-            Serial.print((char)radio.DATA[i]);
-          Serial.print("   [RX_RSSI:");Serial.print(radio.RSSI);Serial.print("]");
-        
-          if (radio.ACKRequested())
-          {
-            radio.sendACK();
-            Serial.print(" - ACK sent");
-          }
-          Blink(LED_BUILTIN,3);
-          Serial.println();
-        }
-    
-    
-        //send FLASH id
-        if(sendSize==0)
-        {
-          sprintf(buff, "FLASH_MEM_ID:0x%X", flash.readDeviceId());
-          byte buffLen=strlen(buff);
-          if (radio.sendWithRetry(GATEWAYID, buff, buffLen))
-            Serial.print(" connected!");
-          else Serial.print(" nothing...");
-        }
-        else
-        {
-          Serial.print("Sending[");
-          Serial.print(sendSize);
-          Serial.print("]: ");
-          for(int i = 0; i < sendSize; i++)
-            Serial.print((char)payload[i]);
-    
-          if (radio.sendWithRetry(GATEWAYID, payload, sendSize))
-           Serial.print("sent!");
-          else Serial.print(" nothing...");
-        }
-        Serial.println();
-        Blink(LED_BUILTIN,3);
-      }
+      };
     }
+    else
+    {
+       for (int i=0; i<sizeof(payload); i++)
+       {
+          if (i<5)  payload[i] = 'n';
+          else      payload[i] = null;
+       }
+    }
+
+    if (SEND){
+      if (radio.receiveDone())
+      {
+        Serial.print('[');Serial.print(radio.SENDERID, DEC);Serial.print("] ");
+        for (byte i = 0; i < radio.DATALEN; i++)
+          Serial.print((char)radio.DATA[i]);
+        Serial.print("   [RX_RSSI:");Serial.print(radio.RSSI);Serial.print("]");
+      
+        if (radio.ACKRequested())
+        {
+          radio.sendACK();
+          Serial.print(" - ACK sent");
+        }
+        Blink(LED_BUILTIN,3);
+        Serial.println();
+      }
+    
+    
+      //send FLASH id
+      if(sendSize==0)
+      {
+        sprintf(buff, "FLASH_MEM_ID:0x%X", flash.readDeviceId());
+        byte buffLen=strlen(buff);
+        if (radio.sendWithRetry(GATEWAYID, buff, buffLen))
+          Serial.print(" connected!");
+        else Serial.print(" nothing...");
+      }
+      else
+      {
+        Serial.print("Sending[");
+        Serial.print(sendSize);
+        Serial.print("]: ");
+        for(int i = 0; i < sendSize; i++)
+          Serial.print((char)payload[i]);
+    
+        if (radio.sendWithRetry(GATEWAYID, payload, sendSize))
+         Serial.print("sent!");
+        else Serial.print(" nothing...");
+      }
+      Serial.println();
+      Blink(LED_BUILTIN,3);
+    }
+    
   }
   
 }

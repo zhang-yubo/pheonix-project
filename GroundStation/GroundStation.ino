@@ -71,7 +71,10 @@ void setup() {
 
 byte ackCount=0;
 uint32_t packetCount = 0;
-char data[6][30];
+char buff[6][30];
+char dataType[6][20] = {"fix status", "fix quality","latitude","longitude","altitude","number of satellites"};
+double data[6];
+double longitude, latitude, altitude, angle;
 void loop() {
   //process any serial input
   if (Serial.available() > 0)
@@ -125,7 +128,80 @@ void loop() {
       Serial.println('F');
     }
   }
+  
+  radioReceive();
 
+  if (data[1] == 1)
+  latitude = data[3];
+  longitude = data[4];
+  altitude = data[5];
+
+  int risingAngle = atan2 (altitude, pow(pow(latitude,2)+pow(longitude,2),0.5));
+  risingAngle *= 180/3.141593 ;
+  
+  
+}
+
+void Blink(byte PIN, int DELAY_MS)
+{
+  pinMode(PIN, OUTPUT);
+  digitalWrite(PIN,HIGH);
+  delay(DELAY_MS);
+  digitalWrite(PIN,LOW);
+}
+
+void storeData(){
+  for (int i=0; i< sizeof(buff); i++)
+  {
+    for (int j=0; j<sizeof(buff[i]); j++)
+    {
+       buff[i][j] = null; 
+    }
+  }
+  int c = 0;
+  for (int i=0; i< sizeof(radio.DATA); i++)
+  {
+    int flag = 0;
+    if(radio.DATA[i]==',')
+    {
+      c++;
+    }
+    else if(radio.DATA[i]>47 || radio.DATA[i]<58)
+    {
+      buff[c][flag] = radio.DATA[i];
+      flag++;
+    }
+  }
+  for (int i=0; i<sizeof(buff); i++)
+  {
+    boolean decimalCount = 0;
+    for (int j=0; j<sizeof(buff[i]); j++)
+    {
+      if (buff[i][j] == '.')
+        decimalCount++;
+      else if (decimalCount!=0 && (buff[i][j]-'0')>=0 && (buff[i][j]-'0')<=9)
+      {
+        data[i] += (buff[i][j]-'0') / pow(10,decimalCount);
+        decimalCount++;
+      }
+      else if ((buff[i][j]-'0')>=0 && (buff[i][j]-'0')<=9)
+        data[i] += (buff[i][j]-'0') * 10;
+    }
+  }
+}
+
+void displayData()
+{
+  for (int i=0; i<sizeof(data); i++)
+  {
+    Serial.print(dataType[i]);
+    Serial.print(":     ");
+    Serial.println(data[i]);
+  }
+}
+
+void radioReceive()
+{
   if (radio.receiveDone())
   {
     Serial.print("#[");
@@ -137,14 +213,7 @@ void loop() {
       Serial.print("to [");Serial.print(radio.TARGETID, DEC);Serial.print("] ");
     }
     storeData();
-    for (int i=0; i < sizeof (data); i++)
-    {
-      for (int j=0; j<sizeof(data[i]); j++)
-      {
-        Serial.print(data[i][j]); 
-      }
-      Serial.print(" $ ");
-    }
+    displayData();
     Serial.print("   [RX_RSSI:");Serial.print(radio.RSSI);Serial.print("]");
     
     if (radio.ACKRequested())
@@ -169,37 +238,5 @@ void loop() {
     }
     Serial.println();
     Blink(LED_BUILTIN,3);
-  }
-}
-
-void Blink(byte PIN, int DELAY_MS)
-{
-  pinMode(PIN, OUTPUT);
-  digitalWrite(PIN,HIGH);
-  delay(DELAY_MS);
-  digitalWrite(PIN,LOW);
-}
-
-void storeData(){
-  for (int i=0; i< sizeof(data); i++)
-  {
-    for (int j=0; j<sizeof(data); j++)
-    {
-       data[i][j] = null; 
-    }
-  }
-  int c = 0;
-  for (int i=0; i< sizeof(radio.DATA); i++)
-  {
-    int flag = 0;
-    if(radio.DATA[i]==',')
-    {
-      c++;
-    }
-    else if(radio.DATA[i]>47 || radio.DATA[i]<58)
-    {
-      data[c][flag] = radio.DATA[i];
-      flag++;
-    }
   }
 }
