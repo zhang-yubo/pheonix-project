@@ -30,11 +30,21 @@
 #endif
 
 int TRANSMITPERIOD = 2000; //transmit a packet to gateway so often (in ms)
-char payload[30];
 char buff[20];
 int sendSize;
 boolean requestACK = false;
 boolean newGPSData = false;
+
+typedef struct{
+  int fix;
+  int fixquality;
+  double latitude;
+  double longitude;
+  double altitude;
+  int satellites;
+}Payload;
+Payload data;
+
 SPIFlash flash(SS_FLASHMEM, 0xEF30); //EF30 for 4mbit  Windbond chip (W25X40CL)
 
 #ifdef ENABLE_ATC
@@ -49,6 +59,7 @@ Adafruit_GPS GPS(&GPSerial);
 
 boolean GPSECHO = false;
 boolean SEND = true;
+
 
 void setup()
 {
@@ -168,36 +179,12 @@ void loop()
     timer = millis();
     if (GPS.fix) 
     {
-      String data = "";
-
-      data += GPS.fix;
-      data += ",";
-      data += GPS.fixquality;
-      data += ",";
-      data += floatPrecision(GPS.latitude,8);
-      data += GPS.lat;
-      data += ",";
-      data += floatPrecision(GPS.longitude,8);
-      data += GPS.lon;
-      data += ",";
-      data += GPS.altitude;
-      data += ",";
-      data += GPS.satellites;
-
-      sendSize = data.length();
-      char payload [sendSize];
-      for (int i=0; i<sendSize; i++)
-      {
-        payload[i]=data.charAt(i);
-      };
+      data = {GPS.fix, GPS.fixquality, GPS.latitude, GPS.longitude, GPS.altitude, GPS.satellites};
+      sendSize = sizeof(data);
     }
     else
     {
-       for (int i=0; i<sizeof(payload); i++)
-       {
-          if (i<5)  payload[i] = 'n';
-          else      payload[i] = null;
-       }
+       data = {0};
     }
 
     if (SEND){
@@ -233,19 +220,35 @@ void loop()
         Serial.print(sendSize);
         Serial.print("]: ");
         for(int i = 0; i < sendSize; i++)
-          Serial.print((char)payload[i]);
+          Serial.print((char)&data);
     
-        if (radio.sendWithRetry(GATEWAYID, payload, sendSize))
-         Serial.print("sent!");
+        if (radio.sendWithRetry(GATEWAYID, (const void*)(&data), sizeof(data)))
+          Serial.print("sent!");
         else Serial.print(" nothing...");
       }
       Serial.println();
       Blink(LED_BUILTIN,3);
     }
+
+    else
+    {
+       displayData();
+    }
     
   }
   
 }
+
+void displayData()
+{   
+    Serial.print("fix: ");Serial.print(data.fix);
+    Serial.print("fixquality: ");Serial.print(data.fixquality);
+    Serial.print("longitude: ");Serial.print(data.longitude);
+    Serial.print("latitude: ");Serial.print(data.latitude);
+    Serial.print("altitude: ");Serial.print(data.altitude);
+    Serial.print("number satelites: ");Serial.print(data.satellites);
+}
+
 
 String floatPrecision(float fl,int pres)
 {
