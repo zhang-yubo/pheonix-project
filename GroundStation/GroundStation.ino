@@ -3,6 +3,7 @@
 #include <RFM69_ATC.h>     
 #include <SPIFlash.h>
 #include <SPI.h>
+#include <SoftwareSerial.h>
 
 #define NODEID        1
 #define NETWORKID     100
@@ -26,6 +27,7 @@
   RFM69 radio;
 #endif
 
+SoftwareSerial Mega(3,2);
 SPIFlash flash(SS_FLASHMEM, 0xEF30); //EF30 for 4mbit  Windbond chip (W25X40CL)
 bool promiscuousMode = false; //set to 'true' to sniff all packets on the same network
 
@@ -140,10 +142,6 @@ void loop() {
   
   radioReceive();
 
-  int risingAngle = atan2 (data.altitude, pow(pow(data.latitude,2)+pow(data.longitude,2),0.5));
-  risingAngle *= 180/3.141593 ;
-  
-  
 }
 
 void Blink(byte PIN, int DELAY_MS)
@@ -155,14 +153,17 @@ void Blink(byte PIN, int DELAY_MS)
 }
 
 
-void displayData()
+void displayAndSend()
 {
-    Serial.print("fix: ");Serial.print(data.fix);
-    Serial.print("fixquality: ");Serial.print(data.fixquality);
-    Serial.print("longitude: ");Serial.print(data.longitude);
-    Serial.print("latitude: ");Serial.print(data.latitude);
-    Serial.print("altitude: ");Serial.print(data.altitude);
-    Serial.print("number satelites: ");Serial.print(data.satellites);
+    Serial.print("fix: ");Serial.println(data.fix);
+    Serial.print("fixquality: ");Serial.println(data.fixquality);
+    Serial.print("longitude: ");Serial.println(data.longitude);
+    Serial.print("latitude: ");Serial.println(data.latitude);
+    Serial.print("altitude: ");Serial.println(data.altitude);
+    Serial.print("number satelites: ");Serial.println(data.satellites);
+
+    Mega.write(sizeof(&data));
+    Mega.write(&data);
 }
 
 void radioReceive()
@@ -178,7 +179,9 @@ void radioReceive()
       Serial.print("to [");Serial.print(radio.TARGETID, DEC);Serial.print("] ");
     }
     data = *(Payload*)radio.DATA;
-    displayData();
+    
+    displayAndSend();
+    
     Serial.print("   [RX_RSSI:");Serial.print(radio.RSSI);Serial.print("]");
     
     if (radio.ACKRequested())
