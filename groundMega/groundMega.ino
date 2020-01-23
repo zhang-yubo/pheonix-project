@@ -52,18 +52,26 @@ void loop() {
 
   if (Serial2.available())
   {
-    char buffSize = Serial2.read();
-    char buff[buffSize];
-    int n = 0;
-    while (Serial2.available())
-    {
-      char in = Serial2.read();
-      buff[n] = in;
-      n++;
+    
+    if(Serial2.read()=='\n')
+    { 
+      byte buff[32];
+      Serial2.readBytes(buff,32);
+      byte data[32];
+      for (int i=0; i<32; i++)
+      {
+        data[i] = buff[i]-48;
+        Serial.print(data[i]);
+      }
+      Serial.println();
+      
+      rocketGPS = *(Payload*) buff;
+      Serial.println(rocketGPS.fix);
     }
-    rocketGPS = *(Payload*)buff;
-  }
+    
+   
 
+  }
   if (g_GPS.available())
   {
     if (GPSECHO)
@@ -72,6 +80,7 @@ void loop() {
     groundGPS = {g_GPS.fix, g_GPS.fixquality, g_GPS.latitude, g_GPS.longitude, g_GPS.altitude, g_GPS.satellites};
 
   }
+
   
   int risingAngle = atan2 (rocketGPS.altitude, pow(pow(rocketGPS.latitude,2)+pow(rocketGPS.longitude,2),0.5));
   risingAngle *= 180/3.141593 ;

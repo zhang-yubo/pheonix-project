@@ -207,7 +207,7 @@ void loop()
       }
     
     
-      //send FLASH id
+      //send FLASH 
       if(sendSize==0)
       {
         sprintf(buff, "FLASH_MEM_ID:0x%X", flash.readDeviceId());
