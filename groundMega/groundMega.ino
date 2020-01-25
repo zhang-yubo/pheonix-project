@@ -20,6 +20,7 @@ void setup() {
   Serial.begin(115200);
   g_GPS.begin(9600);
   Serial2.begin(115200);
+  Serial3.begin(115200);
   
 }
 
@@ -53,20 +54,17 @@ void loop() {
   if (Serial2.available())
   {
     
-    if(Serial2.read()=='\n')
+    if(Serial2.read()=='$')
     { 
       byte buff[32];
-      Serial2.readBytes(buff,32);
-      byte data[32];
       for (int i=0; i<32; i++)
       {
-        data[i] = buff[i]-48;
-        Serial.print(data[i]);
+        buff[i]=Serial2.parseInt();
       }
-      Serial.println();
+      
       
       rocketGPS = *(Payload*) buff;
-      Serial.println(rocketGPS.fix);
+      Serial.println(rocketGPS.latitude);
     }
     
    
@@ -82,8 +80,9 @@ void loop() {
   }
 
   
-  int risingAngle = atan2 (rocketGPS.altitude, pow(pow(rocketGPS.latitude,2)+pow(rocketGPS.longitude,2),0.5));
-  risingAngle *= 180/3.141593 ;
+  
+  motorCommand();
+  
   
 }
 
@@ -105,4 +104,24 @@ void displayGroundData()
     Serial.print("latitude: ");Serial.println(groundGPS.latitude);
     Serial.print("altitude: ");Serial.println(groundGPS.altitude);
     Serial.print("number satelites: ");Serial.println(groundGPS.satellites);
+}
+
+void motorCommand()
+{
+  double risingAngle = atan2 (rocketGPS.altitude, pow(pow(rocketGPS.latitude,2)+pow(rocketGPS.longitude,2),0.5));
+  risingAngle *= 180/3.141593 ;
+
+  double latDiff = rocketGPS.latitude - groundGPS.latitude;
+  double lonDiff = rocketGPS.longitude - groundGPS.longitude;
+
+  double offNorth = atan2 (lonDiff, latDiff);
+  offNorth *= 180/3.141593;
+  if (lonDiff > 0 && latDiff < 0) offNorth += 180;
+  if (lonDiff < 0 && latDiff < 0) offNorth -= 180;
+
+  Serial.print("degrees off North: "); Serial.print(offNorth);
+  Serial.print("rising angle: "); Serial.print(risingAngle);
+
+  Serial3.print(offNorth);
+  Serial3.print(risingAngle);
 }
