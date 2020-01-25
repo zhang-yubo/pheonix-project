@@ -161,9 +161,17 @@ void displayAndSend()
     Serial.print("latitude: ");Serial.println(data.latitude);
     Serial.print("altitude: ");Serial.println(data.altitude);
     Serial.print("number satelites: ");Serial.println(data.satellites);
-
-    Mega.write(sizeof(&data));
-    Mega.write(&data);
+    
+    byte buff[sizeof(data)];
+  
+    memcpy(buff, &data, sizeof(data));
+  
+    Mega.print('$');
+  
+    for (int i=0; i<sizeof(buff); i++)
+    {
+      Mega.println(buff[i]);
+    }
 }
 
 void radioReceive()
