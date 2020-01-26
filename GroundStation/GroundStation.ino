@@ -8,9 +8,7 @@
 #define NODEID        1
 #define NETWORKID     100
 #define FREQUENCY     RF69_433MHZ
-//#define FREQUENCY     RF69_868MHZ
-//#define FREQUENCY     RF69_915MHZ
-#define ENCRYPTKEY    "VCHSVCHSVCHSVCHS" //exactly the same 16 characters/bytes on all nodes!
+#define ENCRYPTKEY    "VCHS"
 #define IS_RFM69HW_HCW  //uncomment only for RFM69HW/HCW! Leave out if you have RFM69W/CW!
 
 
@@ -38,7 +36,6 @@ void setup() {
 #ifdef IS_RFM69HW_HCW
   radio.setHighPower(); //must include this only for RFM69HW/HCW!
 #endif
-  radio.encrypt(ENCRYPTKEY);
   radio.promiscuous(promiscuousMode);
   //radio.setFrequency(919000000); //set frequency to some custom frequency
   char buff[50];
@@ -73,8 +70,6 @@ void setup() {
 
 byte ackCount=0;
 uint32_t packetCount = 0;
-char dataType[6][20] = {"fix status", "fix quality","latitude","longitude","altitude","number of satellites"};
-double longitude, latitude, altitude, angle;
 
 typedef struct{
   int fix;
@@ -155,13 +150,19 @@ void Blink(byte PIN, int DELAY_MS)
 
 void displayAndSend()
 {
-    Serial.print("fix: ");Serial.println(data.fix);
-    Serial.print("fixquality: ");Serial.println(data.fixquality);
-    Serial.print("longitude: ");Serial.println(data.longitude);
-    Serial.print("latitude: ");Serial.println(data.latitude);
-    Serial.print("altitude: ");Serial.println(data.altitude);
-    Serial.print("number satelites: ");Serial.println(data.satellites);
-    
+    if (data.fix!=0)
+    {
+      Serial.print("fix: ");Serial.println(data.fix);
+      Serial.print("fixquality: ");Serial.println(data.fixquality);
+      Serial.print("longitude: ");Serial.println(data.longitude);
+      Serial.print("latitude: ");Serial.println(data.latitude);
+      Serial.print("altitude: ");Serial.println(data.altitude);
+      Serial.print("number satelites: ");Serial.println(data.satellites);
+    }
+
+    else
+      Serial.print("No fix");
+      
     byte buff[sizeof(data)];
   
     memcpy(buff, &data, sizeof(data));
@@ -215,4 +216,5 @@ void radioReceive()
     Serial.println();
     Blink(LED_BUILTIN,3);
   }
+  
 }

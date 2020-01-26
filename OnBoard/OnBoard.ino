@@ -17,7 +17,7 @@
 #define NETWORKID     100  //(range up to 255)
 #define GATEWAYID     1
 #define FREQUENCY   RF69_433MHZ
-#define ENCRYPTKEY    "VCHSVCHSVCHSVCHS" //exactly the same 16 characters/bytes on all nodes!
+#define ENCRYPTKEY    "VCHS" //exactly the same 16 characters/bytes on all nodes!
 #define IS_RFM69HW_HCW  //only for RFM69HW/HCW
 #define ENABLE_ATC
 #define ATC_RSSI      -80
@@ -74,7 +74,7 @@ void setup()
 #ifdef IS_RFM69HW_HCW
   radio.setHighPower(); //must include this only for RFM69HW/HCW!
 #endif
-  radio.encrypt(ENCRYPTKEY);
+
 #ifdef ENABLE_ATC
   radio.enableAutoPower(ATC_RSSI);
 #endif
@@ -141,8 +141,13 @@ void loop()
   {
     char input = Serial.read();
     
-    if (input == 'E') 
-    GPSECHO = !GPSECHO;
+    if (input == 'G') 
+      GPSECHO = !GPSECHO;
+
+    if (input == 'E') //E=enable encryption
+      radio.encrypt(ENCRYPTKEY);
+    if (input == 'e') //e=disable encryption
+      radio.encrypt(null);
 
     if (input >= 48 && input <= 57) //[0,9]
     {
@@ -181,6 +186,7 @@ void loop()
     timer = millis();
     if (GPS.fix) 
     {
+      Serial.println("fixed!");
       data = {GPS.fix, GPS.fixquality, GPS.latitude, GPS.longitude, GPS.altitude, GPS.satellites};
       sendSize = sizeof(data);
     }
@@ -188,6 +194,9 @@ void loop()
     {
        data = {0};
     }
+
+    data = {67, 45, 33.8,5.095945, 1.5436746, 4};
+    sendSize = sizeof(data);
 
     if (SEND){
       if (radio.receiveDone())
@@ -222,7 +231,7 @@ void loop()
         Serial.print(sendSize);
         Serial.print("]: ");
         for(int i = 0; i < sendSize; i++)
-          Serial.print((char)&data);
+          Serial.print(i);
     
         if (radio.sendWithRetry(GATEWAYID, (const void*)(&data), sizeof(data)))
           Serial.print("sent!");
@@ -249,28 +258,4 @@ void displayData()
     Serial.print("latitude: ");Serial.print(data.latitude);
     Serial.print("altitude: ");Serial.print(data.altitude);
     Serial.print("number satelites: ");Serial.print(data.satellites);
-}
-
-
-String floatPrecision(float fl,int pres)
-{
-   double f = fl;
-   int i= (int)f;
-   int dig = 0;
-   while (i != 0)
-   {
-     i /= 10;
-     dig++;
-   }
-   char a[pres+dig+1];
-   itoa((int)f,a,10);
-   a[dig] = '.';
-   f = f - (int)f;
-   for (int k=0; k<pres; k++)
-   {
-     f *=10;
-     a[dig+1+k] = (char)((int)f+48);
-     f = f - (int)f;
-   }
-   return a;
 }

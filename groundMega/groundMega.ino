@@ -14,13 +14,14 @@ Payload rocketGPS;
 
 Adafruit_GPS g_GPS(&Serial1);
 
-boolean GPSECHO = true;
+
+boolean GPSECHO = false;
 
 void setup() {
   Serial.begin(115200);
-  g_GPS.begin(9600);
-  Serial2.begin(115200);
-  Serial3.begin(115200);
+  g_GPS.begin(9600);     //GPS = Serial 1
+  Serial2.begin(115200); //Moteino = Seial 2
+  Serial3.begin(115200); //Motor = Serial 3
   
 }
 
@@ -81,7 +82,7 @@ void loop() {
 
   
   
-  motorCommand();
+  //motorCommand();
   
   
 }
