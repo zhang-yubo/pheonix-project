@@ -54,8 +54,7 @@ SPIFlash flash(SS_FLASHMEM, 0xEF30); //EF30 for 4mbit  Windbond chip (W25X40CL)
 #endif
 
 
-SoftwareSerial GPSerial(3, 2);
-Adafruit_GPS GPS(&GPSerial);
+Adafruit_GPS GPS(&Serial1);
 
 boolean GPSECHO = false;
 boolean SEND = true;
@@ -184,9 +183,14 @@ void loop()
 
   if (millis() - timer > TRANSMITPERIOD) {
     timer = millis();
-    if (GPS.fix) 
+    if (GPS.newNMEAreceived()) 
     {
-      Serial.println("fixed!");
+      Serial.println(GPS.lastNMEA());   // this also sets the newNMEAreceived() flag to false
+  
+      if (!GPS.parse(GPS.lastNMEA()))   // this also sets the newNMEAreceived() flag to false
+        return;
+      
+      Serial.println("GPS!");
       data = {GPS.fix, GPS.fixquality, GPS.latitude, GPS.longitude, GPS.altitude, GPS.satellites};
       sendSize = sizeof(data);
     }
@@ -195,7 +199,6 @@ void loop()
        data = {0};
     }
 
-    data = {67, 45, 33.8,5.095945, 1.5436746, 4};
     sendSize = sizeof(data);
 
     if (SEND){
@@ -258,4 +261,5 @@ void displayData()
     Serial.print("latitude: ");Serial.print(data.latitude);
     Serial.print("altitude: ");Serial.print(data.altitude);
     Serial.print("number satelites: ");Serial.print(data.satellites);
+    Serial.println();
 }

@@ -16,13 +16,16 @@ Adafruit_GPS g_GPS(&Serial1);
 
 
 boolean GPSECHO = false;
+boolean Display = true;
+boolean Motor = false;
 
 void setup() {
   Serial.begin(115200);
   g_GPS.begin(9600);     //GPS = Serial 1
   Serial2.begin(115200); //Moteino = Seial 2
   Serial3.begin(115200); //Motor = Serial 3
-  
+
+  Serial.println("game on");
 }
 
 int period = 2000;
@@ -32,8 +35,14 @@ void loop() {
   {
     char input = Serial.read();
 
-    if (input == 'E')
+    if (input == 'D')
+      Display = !Display;
+    
+    if (input == 'G')
       GPSECHO = !GPSECHO;
+
+    if (input == 'M')
+      Motor = !Motor;
 
     if (input >= 48 && input <= 57) //[0,9]
     {
@@ -54,57 +63,84 @@ void loop() {
 
   if (Serial2.available())
   {
-    
     if(Serial2.read()=='$')
     { 
-      byte buff[32];
-      for (int i=0; i<32; i++)
+      byte buff[18];
+      for (int i=0; i<18; i++)
       {
         buff[i]=Serial2.parseInt();
+        Serial.print(i);
       }
       
-      
+      Serial.println();
       rocketGPS = *(Payload*) buff;
-      Serial.println(rocketGPS.latitude);
+
+      if (DISPLAY)
+      {
+        displayRocketData();
+        displayGroundData();
+      }
+
+      if (Motor)
+        motorCommand();
     }
+
     
-   
+
 
   }
   if (g_GPS.available())
   {
     if (GPSECHO)
       Serial.write(g_GPS.read());
-
-    groundGPS = {g_GPS.fix, g_GPS.fixquality, g_GPS.latitude, g_GPS.longitude, g_GPS.altitude, g_GPS.satellites};
-
+      
+    if (g_GPS.newNMEAreceived())
+    {
+      groundGPS = {
+        g_GPS.fix, 
+        g_GPS.fixquality, 
+        g_GPS.latitude, 
+        g_GPS.longitude, 
+        g_GPS.altitude, 
+        g_GPS.satellites
+      };
+      
+      Serial.println(g_GPS.lastNMEA());   // this also sets the newNMEAreceived() flag to false
+  
+      if (!g_GPS.parse(g_GPS.lastNMEA()))
+      {}// this also sets the newNMEAreceived() flag to false
+        
+    }
   }
-
   
   
-  //motorCommand();
+ 
   
   
 }
 
 void displayRocketData()
 {
+    Serial.println("----------Rocket----------");
     Serial.print("fix: ");Serial.println(rocketGPS.fix);
     Serial.print("fixquality: ");Serial.println(rocketGPS.fixquality);
-    Serial.print("longitude: ");Serial.println(rocketGPS.longitude);
-    Serial.print("latitude: ");Serial.println(rocketGPS.latitude);
-    Serial.print("altitude: ");Serial.println(rocketGPS.altitude);
+    Serial.print("longitude: ");Serial.println(rocketGPS.longitude,8);
+    Serial.print("latitude: ");Serial.println(rocketGPS.latitude,8);
+    Serial.print("altitude: ");Serial.println(rocketGPS.altitude,3);
     Serial.print("number satelites: ");Serial.println(rocketGPS.satellites);
+    Serial.println("--------------------------");
 }
 
 void displayGroundData()
 {
+    Serial.println("----------Ground----------");
     Serial.print("fix: ");Serial.println(groundGPS.fix);
     Serial.print("fixquality: ");Serial.println(groundGPS.fixquality);
-    Serial.print("longitude: ");Serial.println(groundGPS.longitude);
-    Serial.print("latitude: ");Serial.println(groundGPS.latitude);
-    Serial.print("altitude: ");Serial.println(groundGPS.altitude);
+    Serial.print("longitude: ");Serial.println(groundGPS.longitude,8);
+    Serial.print("latitude: ");Serial.println(groundGPS.latitude,8);
+    Serial.print("altitude: ");Serial.println(groundGPS.altitude,3);
     Serial.print("number satelites: ");Serial.println(groundGPS.satellites);
+    Serial.println("--------------------------");
 }
 
 void motorCommand()
@@ -120,9 +156,13 @@ void motorCommand()
   if (lonDiff > 0 && latDiff < 0) offNorth += 180;
   if (lonDiff < 0 && latDiff < 0) offNorth -= 180;
 
+  
+  Serial.println("----------Motor-----------");
   Serial.print("degrees off North: "); Serial.print(offNorth);
   Serial.print("rising angle: "); Serial.print(risingAngle);
-
+  Serial.println();
+  Serial.println("--------------------------");
+  
   Serial3.print(offNorth);
   Serial3.print(risingAngle);
 }

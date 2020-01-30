@@ -25,12 +25,12 @@
   RFM69 radio;
 #endif
 
-SoftwareSerial Mega(3,2);
 SPIFlash flash(SS_FLASHMEM, 0xEF30); //EF30 for 4mbit  Windbond chip (W25X40CL)
 bool promiscuousMode = false; //set to 'true' to sniff all packets on the same network
 
 void setup() {
   Serial.begin(SERIAL_BAUD);
+  Serial1.begin(115200);
   delay(10);
   radio.initialize(FREQUENCY,NODEID,NETWORKID);
 #ifdef IS_RFM69HW_HCW
@@ -167,11 +167,11 @@ void displayAndSend()
   
     memcpy(buff, &data, sizeof(data));
   
-    Mega.print('$');
+    Serial1.print('$');
   
     for (int i=0; i<sizeof(buff); i++)
     {
-      Mega.println(buff[i]);
+      Serial1.println(buff[i]);
     }
 }
 
@@ -188,8 +188,6 @@ void radioReceive()
       Serial.print("to [");Serial.print(radio.TARGETID, DEC);Serial.print("] ");
     }
     data = *(Payload*)radio.DATA;
-    
-    displayAndSend();
     
     Serial.print("   [RX_RSSI:");Serial.print(radio.RSSI);Serial.print("]");
     
@@ -213,6 +211,7 @@ void radioReceive()
         else Serial.print("nothing");
       }
     }
+    displayAndSend();
     Serial.println();
     Blink(LED_BUILTIN,3);
   }
