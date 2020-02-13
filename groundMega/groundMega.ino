@@ -39,7 +39,13 @@ void loop() {
       Display = !Display;
     
     if (input == 'G')
+    {
       GPSECHO = !GPSECHO;
+      if (GPSECHO)
+        Serial2.print('G');
+      else
+        Serial2.print('S');
+    }
 
     if (input == 'M')
       Motor = !Motor;
@@ -85,6 +91,17 @@ void loop() {
         motorCommand();
     }
 
+    if(Serial2.read()=='%')
+    { 
+      char in = Serial2.read();
+      while (in != '%' && in != '$')
+      {
+        Serial.print(in);
+        in = Serial2.read();
+      }
+      Serial.println();
+    }
+
     
 
 
@@ -92,7 +109,10 @@ void loop() {
   if (g_GPS.available())
   {
     if (GPSECHO)
+    {
       Serial.write(g_GPS.read());
+    }
+      
       
     if (g_GPS.newNMEAreceived())
     {
@@ -108,7 +128,7 @@ void loop() {
       Serial.println(g_GPS.lastNMEA());   // this also sets the newNMEAreceived() flag to false
   
       if (!g_GPS.parse(g_GPS.lastNMEA()))
-      {}// this also sets the newNMEAreceived() flag to false
+      {return;}// this also sets the newNMEAreceived() flag to false
         
     }
   }
@@ -122,24 +142,34 @@ void loop() {
 void displayRocketData()
 {
     Serial.println("----------Rocket----------");
-    Serial.print("fix: ");Serial.println(rocketGPS.fix);
-    Serial.print("fixquality: ");Serial.println(rocketGPS.fixquality);
-    Serial.print("longitude: ");Serial.println(rocketGPS.longitude,8);
-    Serial.print("latitude: ");Serial.println(rocketGPS.latitude,8);
-    Serial.print("altitude: ");Serial.println(rocketGPS.altitude,3);
-    Serial.print("number satelites: ");Serial.println(rocketGPS.satellites);
+    if (rocketGPS.fix == 0)
+      Serial.println("rocket GPS not fixed");
+    else
+    {
+      Serial.print("fix: ");Serial.println(rocketGPS.fix);
+      Serial.print("fixquality: ");Serial.println(rocketGPS.fixquality);
+      Serial.print("longitude: ");Serial.println(rocketGPS.longitude,8);
+      Serial.print("latitude: ");Serial.println(rocketGPS.latitude,8);
+      Serial.print("altitude: ");Serial.println(rocketGPS.altitude,3);
+      Serial.print("number satelites: ");Serial.println(rocketGPS.satellites);
+    }
     Serial.println("--------------------------");
 }
 
 void displayGroundData()
 {
     Serial.println("----------Ground----------");
-    Serial.print("fix: ");Serial.println(groundGPS.fix);
-    Serial.print("fixquality: ");Serial.println(groundGPS.fixquality);
-    Serial.print("longitude: ");Serial.println(groundGPS.longitude,8);
-    Serial.print("latitude: ");Serial.println(groundGPS.latitude,8);
-    Serial.print("altitude: ");Serial.println(groundGPS.altitude,3);
-    Serial.print("number satelites: ");Serial.println(groundGPS.satellites);
+    if (groundGPS.fix == 0)
+      Serial.println("ground GPS not fixed");
+    else
+    {
+      Serial.print("fix: ");Serial.println(groundGPS.fix);
+      Serial.print("fixquality: ");Serial.println(groundGPS.fixquality);
+      Serial.print("longitude: ");Serial.println(groundGPS.longitude,8);
+      Serial.print("latitude: ");Serial.println(groundGPS.latitude,8);
+      Serial.print("altitude: ");Serial.println(groundGPS.altitude,3);
+      Serial.print("number satelites: ");Serial.println(groundGPS.satellites);
+    }
     Serial.println("--------------------------");
 }
 
