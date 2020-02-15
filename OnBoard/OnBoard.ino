@@ -1,4 +1,3 @@
-
 // Adafruit GPS modules using MTK3329/MTK3339 driver
 
 // Adafruit Ultimate GPS module using MTK33x9 chipset
@@ -58,8 +57,6 @@ Adafruit_GPS GPS(&Serial1);
 
 boolean GPSECHO = false;
 boolean SEND = true;
-boolean sendStruct = true;
-boolean sendSentences = false;
 
 
 void setup()
@@ -143,13 +140,7 @@ void loop()
     char input = Serial.read();
     
     if (input == 'G') 
-    {
       GPSECHO = !GPSECHO;
-      sendSentences = !sendSentences;
-    }
-
-    if (input == 'S') 
-    sendStruct = !sendStruct;
 
     if (input == 'E') //E=enable encryption
       radio.encrypt(ENCRYPTKEY);
@@ -165,6 +156,8 @@ void loop()
       Serial.println("ms\n");
     }
 
+    if (input == 'S') 
+    SEND = !SEND;
 
   }
   char c = GPS.read();
@@ -189,142 +182,72 @@ void loop()
 
   if (millis() - timer > TRANSMITPERIOD) {
     timer = millis();
-    if (sendStruct)
+    if (GPS.newNMEAreceived()) 
     {
-      if (GPS.newNMEAreceived()) 
+      Serial.println(GPS.lastNMEA());   // this also sets the newNMEAreceived() flag to false
+  
+      if (!GPS.parse(GPS.lastNMEA()))   // this also sets the newNMEAreceived() flag to false
+        return;
+      
+      Serial.println("GPS!");
+      data = {GPS.fix, GPS.fixquality, GPS.latitude, GPS.longitude, GPS.altitude, GPS.satellites};
+      sendSize = sizeof(data);
+    }
+    else
+    {
+       data = {0};
+    }
+
+    sendSize = sizeof(data);
+
+    if (SEND){
+      if (radio.receiveDone())
       {
-        Serial.println(GPS.lastNMEA());   // this also sets the newNMEAreceived() flag to false
+        Serial.print('[');Serial.print(radio.SENDERID, DEC);Serial.print("] ");
+        for (byte i = 0; i < radio.DATALEN; i++)
+          Serial.print((char)radio.DATA[i]);
+        Serial.print("   [RX_RSSI:");Serial.print(radio.RSSI);Serial.print("]");
+      
+        if (radio.ACKRequested())
+        {
+          radio.sendACK();
+          Serial.print(" - ACK sent");
+        }
+        Blink(LED_BUILTIN,3);
+        Serial.println();
+      }
     
-        if (!GPS.parse(GPS.lastNMEA()))   // this also sets the newNMEAreceived() flag to false
-          return;
-        
-        data = {GPS.fix, GPS.fixquality, GPS.latitude, GPS.longitude, GPS.altitude, GPS.satellites};
-        sendSize = sizeof(data);
-        
+    
+      //send FLASH 
+      if(sendSize==0)
+      {
+        sprintf(buff, "FLASH_MEM_ID:0x%X", flash.readDeviceId());
+        byte buffLen=strlen(buff);
+        if (radio.sendWithRetry(GATEWAYID, buff, buffLen))
+          Serial.print(" connected!");
+        else Serial.print(" nothing...");
       }
       else
       {
-         data = {0};
-      }
-  
-      sendSize = sizeof(data);
-  
-        if (radio.receiveDone())
-        {
-          Serial.print('[');Serial.print(radio.SENDERID, DEC);Serial.print("] ");
-          for (byte i = 0; i < radio.DATALEN; i++)
-          {
-            if (radio.DATA[i]=='G')
-            {
-              sendStruct = false;
-              sendSentences = true;
-              Serial.print("Sending sentences");
-              return;
-            }
-            
-            
-            Serial.print((char)radio.DATA[i]);
-          }
-          Serial.print("   [RX_RSSI:");Serial.print(radio.RSSI);Serial.print("]");
-        
-          if (radio.ACKRequested())
-          {
-            radio.sendACK();
-            Serial.print(" - ACK sent");
-          }
-          Blink(LED_BUILTIN,3);
-          Serial.println();
-        }
-      
-      
-        //send FLASH 
-        if(sendSize==0)
-        {
-          sprintf(buff, "FLASH_MEM_ID:0x%X", flash.readDeviceId());
-          byte buffLen=strlen(buff);
-          if (radio.sendWithRetry(GATEWAYID, buff, buffLen))
-            Serial.print(" connected!");
-          else Serial.print(" nothing...");
-        }
-        else
-        {
-          Serial.print("Sending[");
-          Serial.print(sendSize);
-          Serial.print("]: ");
-          for(int i = 0; i < sendSize; i++)
-            Serial.print(i);
-      
-          if (radio.sendWithRetry(GATEWAYID, (const void*)(&data), sizeof(data)))
-            Serial.print("sent!");
-          else Serial.print(" nothing...");
-        }
-        Serial.println();
-        Blink(LED_BUILTIN,3);
-      }
-      
-
-    if (sendSentences)
-    {
-      if (GPS.newNMEAreceived()) 
-      {
-        Serial.println(GPS.lastNMEA());   // this also sets the newNMEAreceived() flag to false
+        Serial.print("Sending[");
+        Serial.print(sendSize);
+        Serial.print("]: ");
+        for(int i = 0; i < sendSize; i++)
+          Serial.print(i);
     
-        if (!GPS.parse(GPS.lastNMEA()))   // this also sets the newNMEAreceived() flag to false
-          return;
+        if (radio.sendWithRetry(GATEWAYID, (const void*)(&data), sizeof(data)))
+          Serial.print("sent!");
+        else Serial.print(" nothing...");
       }
-  
-      sendSize = sizeof(data);
-      
-        if (radio.receiveDone())
-        {
-          Serial.print('[');Serial.print(radio.SENDERID, DEC);Serial.print("] ");
-          for (byte i = 0; i < radio.DATALEN; i++)
-          {
-            if (radio.DATA[i]=='S')
-            {
-              sendStruct = true;
-              sendSentences = false;
-              Serial.print("Sending struct");
-              return;
-            }
-            Serial.print((char)radio.DATA[i]);
-          }
-          Serial.print("   [RX_RSSI:");Serial.print(radio.RSSI);Serial.print("]");
-        
-          if (radio.ACKRequested())
-          {
-            radio.sendACK();
-            Serial.print(" - ACK sent");
-          }
-          Blink(LED_BUILTIN,3);
-          Serial.println();
-        }
-      
-      
-        //send FLASH 
-        if(sendSize==0)
-        {
-          sprintf(buff, "FLASH_MEM_ID:0x%X", flash.readDeviceId());
-          byte buffLen=strlen(buff);
-          if (radio.sendWithRetry(GATEWAYID, buff, buffLen))
-            Serial.print(" connected!");
-          else Serial.print(" nothing...");
-        }
-        else
-        {
-          Serial.print("Sending[");
-          Serial.print(sendSize);
-          Serial.print("]: ");
-          Serial.print(GPS.lastNMEA());
-      
-          if (radio.sendWithRetry(GATEWAYID, GPS.lastNMEA(), sizeof(GPS.lastNMEA())))
-            Serial.print("sent!");
-          else Serial.print(" nothing...");
-        }
-        Serial.println();
-        Blink(LED_BUILTIN,3);
-      
+      Serial.println();
+      Blink(LED_BUILTIN,3);
     }
+
+    else
+    {
+       displayData();
+    }
+    
   }
   
 }

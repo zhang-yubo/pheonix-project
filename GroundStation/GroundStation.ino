@@ -1,4 +1,3 @@
-
 #include <RFM69.h>         
 #include <RFM69_ATC.h>     
 #include <SPIFlash.h>
@@ -7,7 +6,6 @@
 
 #define NODEID        1
 #define NETWORKID     100
-#define GATEWAYID     2
 #define FREQUENCY     RF69_433MHZ
 #define ENCRYPTKEY    "VCHS"
 #define IS_RFM69HW_HCW  //uncomment only for RFM69HW/HCW! Leave out if you have RFM69W/CW!
@@ -71,8 +69,6 @@ void setup() {
 
 byte ackCount=0;
 uint32_t packetCount = 0;
-boolean sendStruct = true;
-boolean sendSentence = false;
 
 typedef struct{
   int fix;
@@ -89,7 +85,43 @@ void loop() {
   if (Serial.available() > 0)
   {
     char input = Serial.read();
-    
+    if (input == 'r') //d=dump all register values
+      radio.readAllRegs();
+    if (input == 'E') //E=enable encryption
+      radio.encrypt(ENCRYPTKEY);
+    if (input == 'e') //e=disable encryption
+      radio.encrypt(null);
+    if (input == 'p')
+    {
+      promiscuousMode = !promiscuousMode;
+      radio.promiscuous(promiscuousMode);
+      Serial.print("Promiscuous mode ");Serial.println(promiscuousMode ? "on" : "off");
+    }
+    if (input == 'd') //d=dump flash area
+    {
+      Serial.println("Flash content:");
+      int counter = 0;
+
+      while(counter<=256){
+        Serial.print(flash.readByte(counter++), HEX);
+        Serial.print('.');
+      }
+      while(flash.busy());
+      Serial.println();
+    }
+    if (input == 'D')
+    {
+      Serial.print("Deleting Flash chip ... ");
+      flash.chipErase();
+      while(flash.busy());
+      Serial.println("DONE");
+    }
+    if (input == 'i')
+    {
+      Serial.print("DeviceID: ");
+      word jedecid = flash.readDeviceId();
+      Serial.println(jedecid, HEX);
+    }
     if (input == 't')
     {
       byte temperature =  radio.readTemperature(-1); // -1 = user cal factor, adjust for correct ambient
@@ -99,39 +131,6 @@ void loop() {
       Serial.print("C, ");
       Serial.print(fTemp); //converting to F loses some resolution, obvious when C is on edge between 2 values (ie 26C=78F, 27C=80F)
       Serial.println('F');
-    }
-
-    if (input == 'S')
-    {
-      sendStruct = true;
-      sendSentence = false;
-      while (radio.sendWithRetry(GATEWAYID, "S", 1));
-      Serial.println("Receiving structs");
-    }
-
-    if (input == 'G')
-    {
-      sendStruct = false;
-      sendSentence = true;
-      while (radio.sendWithRetry(GATEWAYID, "G", 1));
-      Serial.println("Receiving sentences");
-    }
-  }
-
-  if (Serial1.available() > 0)
-  {
-    char input = Serial1.read();
-    
-    if (input == 'S')
-    {
-      sendStruct = true;
-      sendSentence = false;
-    }
-
-    if (input == 'G')
-    {
-      sendStruct = false;
-      sendSentence = true;
     }
   }
   
@@ -148,10 +147,8 @@ void Blink(byte PIN, int DELAY_MS)
 }
 
 
-void displaySendStruct()
+void displayAndSend()
 {
-    data = *(Payload*)radio.DATA;
-    
     if (data.fix!=0)
     {
       Serial.print("fix: ");Serial.println(data.fix);
@@ -177,16 +174,6 @@ void displaySendStruct()
     }
 }
 
-void displaySendSentence()
-{
-    Serial1.print('%');
-
-    for (int i=0; i<radio.DATALEN; i++)
-    {
-      Serial1.println(radio.DATA[i]);
-    }
-}
-
 void radioReceive()
 {
   if (radio.receiveDone())
@@ -199,6 +186,7 @@ void radioReceive()
     {
       Serial.print("to [");Serial.print(radio.TARGETID, DEC);Serial.print("] ");
     }
+    data = *(Payload*)radio.DATA;
     
     Serial.print("   [RX_RSSI:");Serial.print(radio.RSSI);Serial.print("]");
     
@@ -222,13 +210,7 @@ void radioReceive()
         else Serial.print("nothing");
       }
     }
-
-    if (sendStruct)
-      displaySendStruct();
-
-    if (sendSentence)
-      displaySendSentence();
-    
+    displayAndSend();
     Serial.println();
     Blink(LED_BUILTIN,3);
   }

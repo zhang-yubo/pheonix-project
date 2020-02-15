@@ -1,4 +1,5 @@
 #include <Adafruit_GPS.h>
+#include <math.h>
 
 
 typedef struct{
@@ -176,29 +177,33 @@ void motorCommand()
 
   double lonDiff = (groundGPS.longitude - rocketGPS.longitude)*1000000;
   double latDiff = (rocketGPS.latitude - groundGPS.latitude)*1000000; //reduce digits
-  double offNorth = 180;
+  double offSouth = 180;
 
-  if (lonDiff < 0 && latDiff == 0) offNorth = 90; //if rocket directly west of groundstation
-  else if (lonDiff > 0 && latDiff == 0) offNorth = 270; //if rocket directly east of groundstation
-  else
-  {
-    offNorth = atan2 (lonDiff, latDiff);
-    offNorth *= 180/3.141593;
-    //******the following calculations point north at 180 deg azimuth and use north-south as reference*****
-    if (lonDiff < 0 && latDiff < 0) offNorth += 0; //if rocket southwest of groundstation
-    else if (lonDiff < 0 && latDiff > 0) offNorth += 180; //if rocket north of groundstation
-    else if (lonDiff > 0 && latDiff > 0) offNorth += 180;
-    else if (lonDiff > 0 && latDiff < 0) offNorth +=360; //if rocket southeast of groundstation
-  }
+  offSouth = atan2 (lonDiff, latDiff);
+  offSouth *= 180/M_PI;
+  offSouth =+ 180;
+
+//  if (lonDiff < 0 && latDiff == 0) offNorth = 90; //if rocket directly west of groundstation
+//  else if (lonDiff > 0 && latDiff == 0) offNorth = 270; //if rocket directly east of groundstation
+//  else
+//  {
+//    offNorth = atan2 (lonDiff, latDiff);
+//    offNorth *= 180/3.141593;
+//    //******the following calculations point north at 180 deg azimuth and use north-south as reference*****
+//    if (lonDiff < 0 && latDiff < 0) offNorth += 0; //if rocket southwest of groundstation
+//    else if (lonDiff < 0 && latDiff > 0) offNorth += 180; //if rocket north of groundstation
+//    else if (lonDiff > 0 && latDiff > 0) offNorth += 180;
+//    else if (lonDiff > 0 && latDiff < 0) offNorth +=360; //if rocket southeast of groundstation
+//  }
 
   
   Serial.println("----------Motor-----------");
-  Serial.print("degrees off North: "); Serial.print(offNorth);
+  Serial.print("degrees off South: "); Serial.print(offSouth);
   Serial.print(" rising angle: "); Serial.println(risingAngle);
   Serial.print("latDiff: "); Serial.print(latDiff); Serial.print(" lonDiff: "); Serial.print(lonDiff);
   Serial.println();
   Serial.println("--------------------------");
   
-  Serial3.print(offNorth);
+  Serial3.print(offSouth);
   Serial3.print(risingAngle);
 }
