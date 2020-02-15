@@ -12,17 +12,18 @@ typedef struct{
 Payload groundGPS;
 Payload rocketGPS;
 
-Adafruit_GPS g_GPS(&Serial1);
+Adafruit_GPS g_GPS(&Serial1); //set GPS serial to Serial1
 
 
 boolean GPSECHO = false;
 boolean Display = true;
 boolean Motor = false;
+boolean newData = false;
 
 void setup() {
   Serial.begin(115200);
   g_GPS.begin(9600);     //GPS = Serial 1
-  Serial2.begin(115200); //Moteino = Seial 2
+  Serial2.begin(115200); //Moteino = Serial 2
   Serial3.begin(115200); //Motor = Serial 3
 
   Serial.println("game on");
@@ -39,13 +40,7 @@ void loop() {
       Display = !Display;
     
     if (input == 'G')
-    {
       GPSECHO = !GPSECHO;
-      if (GPSECHO)
-        Serial2.print('G');
-      else
-        Serial2.print('S');
-    }
 
     if (input == 'M')
       Motor = !Motor;
@@ -75,13 +70,12 @@ void loop() {
       for (int i=0; i<18; i++)
       {
         buff[i]=Serial2.parseInt();
-        Serial.print(i);
       }
       
-      Serial.println();
+      newData = true; 
       rocketGPS = *(Payload*) buff;
 
-      if (DISPLAY)
+      if (Display)
       {
         displayRocketData();
         displayGroundData();
@@ -91,28 +85,15 @@ void loop() {
         motorCommand();
     }
 
-    if(Serial2.read()=='%')
-    { 
-      char in = Serial2.read();
-      while (in != '%' && in != '$')
-      {
-        Serial.print(in);
-        in = Serial2.read();
-      }
-      Serial.println();
-    }
-
     
 
 
   }
+
   if (g_GPS.available())
   {
     if (GPSECHO)
-    {
       Serial.write(g_GPS.read());
-    }
-      
       
     if (g_GPS.newNMEAreceived())
     {
@@ -128,9 +109,14 @@ void loop() {
       Serial.println(g_GPS.lastNMEA());   // this also sets the newNMEAreceived() flag to false
   
       if (!g_GPS.parse(g_GPS.lastNMEA()))
-      {return;}// this also sets the newNMEAreceived() flag to false
+      {
+        return;
+      }
+      // this also sets the newNMEAreceived() flag to false
         
     }
+
+    
   }
   
   
@@ -142,9 +128,7 @@ void loop() {
 void displayRocketData()
 {
     Serial.println("----------Rocket----------");
-    if (rocketGPS.fix == 0)
-      Serial.println("rocket GPS not fixed");
-    else
+    if (rocketGPS.fix)
     {
       Serial.print("fix: ");Serial.println(rocketGPS.fix);
       Serial.print("fixquality: ");Serial.println(rocketGPS.fixquality);
@@ -153,15 +137,23 @@ void displayRocketData()
       Serial.print("altitude: ");Serial.println(rocketGPS.altitude,3);
       Serial.print("number satelites: ");Serial.println(rocketGPS.satellites);
     }
+    if (!rocketGPS.fix)
+    {
+      Serial.println("On board GPS not fixed");
+    }
+    if (!newData)
+    {
+      Serial.println("No rocket signal");
+    }
+    
     Serial.println("--------------------------");
+    newData = false;
 }
 
 void displayGroundData()
 {
     Serial.println("----------Ground----------");
-    if (groundGPS.fix == 0)
-      Serial.println("ground GPS not fixed");
-    else
+    if (groundGPS.fix)
     {
       Serial.print("fix: ");Serial.println(groundGPS.fix);
       Serial.print("fixquality: ");Serial.println(groundGPS.fixquality);
@@ -169,6 +161,10 @@ void displayGroundData()
       Serial.print("latitude: ");Serial.println(groundGPS.latitude,8);
       Serial.print("altitude: ");Serial.println(groundGPS.altitude,3);
       Serial.print("number satelites: ");Serial.println(groundGPS.satellites);
+    }
+    else
+    {
+      Serial.println("No ground data");
     }
     Serial.println("--------------------------");
 }
@@ -178,18 +174,28 @@ void motorCommand()
   double risingAngle = atan2 (rocketGPS.altitude, pow(pow(rocketGPS.latitude,2)+pow(rocketGPS.longitude,2),0.5));
   risingAngle *= 180/3.141593 ;
 
-  double latDiff = rocketGPS.latitude - groundGPS.latitude;
-  double lonDiff = rocketGPS.longitude - groundGPS.longitude;
+  double lonDiff = (groundGPS.longitude - rocketGPS.longitude)*1000000;
+  double latDiff = (rocketGPS.latitude - groundGPS.latitude)*1000000; //reduce digits
+  double offNorth = 180;
 
-  double offNorth = atan2 (lonDiff, latDiff);
-  offNorth *= 180/3.141593;
-  if (lonDiff > 0 && latDiff < 0) offNorth += 180;
-  if (lonDiff < 0 && latDiff < 0) offNorth -= 180;
+  if (lonDiff < 0 && latDiff == 0) offNorth = 90; //if rocket directly west of groundstation
+  else if (lonDiff > 0 && latDiff == 0) offNorth = 270; //if rocket directly east of groundstation
+  else
+  {
+    offNorth = atan2 (lonDiff, latDiff);
+    offNorth *= 180/3.141593;
+    //******the following calculations point north at 180 deg azimuth and use north-south as reference*****
+    if (lonDiff < 0 && latDiff < 0) offNorth += 0; //if rocket southwest of groundstation
+    else if (lonDiff < 0 && latDiff > 0) offNorth += 180; //if rocket north of groundstation
+    else if (lonDiff > 0 && latDiff > 0) offNorth += 180;
+    else if (lonDiff > 0 && latDiff < 0) offNorth +=360; //if rocket southeast of groundstation
+  }
 
   
   Serial.println("----------Motor-----------");
   Serial.print("degrees off North: "); Serial.print(offNorth);
-  Serial.print("rising angle: "); Serial.print(risingAngle);
+  Serial.print(" rising angle: "); Serial.println(risingAngle);
+  Serial.print("latDiff: "); Serial.print(latDiff); Serial.print(" lonDiff: "); Serial.print(lonDiff);
   Serial.println();
   Serial.println("--------------------------");
   
