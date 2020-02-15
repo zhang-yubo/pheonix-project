@@ -40,6 +40,7 @@ typedef struct{
   double latitude;
   double longitude;
   double altitude;
+  double velocity;
   int satellites;
 }Payload;
 Payload data;
@@ -190,7 +191,7 @@ void loop()
         return;
       
       Serial.println("GPS!");
-      data = {GPS.fix, GPS.fixquality, GPS.latitude, GPS.longitude, GPS.altitude, GPS.satellites};
+      data = {GPS.fix, GPS.fixquality, GPS.latitude, GPS.longitude, GPS.altitude, GPS.speed, GPS.satellites};
       sendSize = sizeof(data);
     }
     else
@@ -259,6 +260,7 @@ void displayData()
     Serial.print("longitude: ");Serial.print(data.longitude);
     Serial.print("latitude: ");Serial.print(data.latitude);
     Serial.print("altitude: ");Serial.print(data.altitude);
+    Serial.print("speed: ");Serial.println(data.velocity);
     Serial.print("number satelites: ");Serial.print(data.satellites);
     Serial.println();
 }

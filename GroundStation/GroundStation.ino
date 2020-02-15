@@ -76,6 +76,7 @@ typedef struct{
   double latitude;
   double longitude;
   double altitude;
+  double velocity;
   int satellites;
 }Payload;
 Payload data;
@@ -85,37 +86,6 @@ void loop() {
   if (Serial.available() > 0)
   {
     char input = Serial.read();
-    if (input == 'r') //d=dump all register values
-      radio.readAllRegs();
-    if (input == 'E') //E=enable encryption
-      radio.encrypt(ENCRYPTKEY);
-    if (input == 'e') //e=disable encryption
-      radio.encrypt(null);
-    if (input == 'p')
-    {
-      promiscuousMode = !promiscuousMode;
-      radio.promiscuous(promiscuousMode);
-      Serial.print("Promiscuous mode ");Serial.println(promiscuousMode ? "on" : "off");
-    }
-    if (input == 'd') //d=dump flash area
-    {
-      Serial.println("Flash content:");
-      int counter = 0;
-
-      while(counter<=256){
-        Serial.print(flash.readByte(counter++), HEX);
-        Serial.print('.');
-      }
-      while(flash.busy());
-      Serial.println();
-    }
-    if (input == 'D')
-    {
-      Serial.print("Deleting Flash chip ... ");
-      flash.chipErase();
-      while(flash.busy());
-      Serial.println("DONE");
-    }
     if (input == 'i')
     {
       Serial.print("DeviceID: ");
@@ -156,6 +126,7 @@ void displayAndSend()
       Serial.print("longitude: ");Serial.println(data.longitude);
       Serial.print("latitude: ");Serial.println(data.latitude);
       Serial.print("altitude: ");Serial.println(data.altitude);
+      Serial.print("speed: ");Serial.println(data.velocity);
       Serial.print("number satelites: ");Serial.println(data.satellites);
     }
 

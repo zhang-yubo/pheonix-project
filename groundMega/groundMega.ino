@@ -8,6 +8,7 @@ typedef struct{
   double latitude;
   double longitude;
   double altitude;
+  double velocity;
   int satellites;
 }Payload;
 Payload groundGPS;
@@ -67,8 +68,8 @@ void loop() {
   {
     if(Serial2.read()=='$')
     { 
-      byte buff[18];
-      for (int i=0; i<18; i++)
+      byte buff[22];
+      for (int i=0; i<22; i++)
       {
         buff[i]=Serial2.parseInt();
       }
@@ -104,6 +105,7 @@ void loop() {
         g_GPS.latitude, 
         g_GPS.longitude, 
         g_GPS.altitude, 
+        g_GPS.speed,
         g_GPS.satellites
       };
       
@@ -119,6 +121,22 @@ void loop() {
 
     
   }
+
+  Serial.print("$GPRMC,");
+  Serial.print(g_GPS.hour);Serial.print(g_GPS.minute);Serial.print(g_GPS.seconds); Serial.print("."); Serial.print(g_GPS.milliseconds);Serial.print(",");
+  Serial.print(rocketGPS.latitude,7);Serial.print(",");
+  Serial.print(g_GPS.lat);Serial.print(",");
+  Serial.print(rocketGPS.longitude,7);Serial.print(",");
+  Serial.print(g_GPS.lon);Serial.print(",");
+  Serial.print(rocketGPS.velocity);Serial.print(",");
+  Serial.print("100,");
+  Serial.print(g_GPS.day);Serial.print(g_GPS.month);Serial.print(g_GPS.year);Serial.print(",");
+  Serial.print("0.0,");
+  Serial.print("E,");
+  Serial.print("A");
+  Serial.print("*20");
+  Serial.print((char)13);
+  Serial.print((char)10);
   
   
  
@@ -136,6 +154,7 @@ void displayRocketData()
       Serial.print("longitude: ");Serial.println(rocketGPS.longitude,8);
       Serial.print("latitude: ");Serial.println(rocketGPS.latitude,8);
       Serial.print("altitude: ");Serial.println(rocketGPS.altitude,3);
+      Serial.print("speed: ");Serial.println(rocketGPS.velocity);
       Serial.print("number satelites: ");Serial.println(rocketGPS.satellites);
     }
     if (!rocketGPS.fix)
@@ -148,6 +167,10 @@ void displayRocketData()
     }
     
     Serial.println("--------------------------");
+    Serial.print("$GPRMC,");
+    Serial.print(g_GPS.hour);Serial.print(g_GPS.minute);Serial.print(g_GPS.seconds); Serial.print("."); Serial.print(g_GPS.milliseconds);Serial.print(",");
+    Serial.print(rocketGPS.latitude);Serial.print(",");
+    Serial.print(g_GPS.lat);Serial.print(",");
     newData = false;
 }
 
