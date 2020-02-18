@@ -17,7 +17,7 @@ Payload rocketGPS;
 Adafruit_GPS g_GPS(&Serial1); //set GPS serial to Serial1
 
 
-boolean GPSECHO = false;
+boolean GPSECHO = true;
 boolean Display = true;
 boolean Motor = false;
 boolean newData = false;
@@ -77,14 +77,21 @@ void loop() {
       newData = true; 
       rocketGPS = *(Payload*) buff;
 
-      if (Display)
+      if (GPSECHO)
       {
-        displayRocketData();
-        displayGroundData();
+        displayNMEA();
       }
-
-      if (Motor)
-        motorCommand();
+      else
+      {
+        if (Display)
+        {
+          displayRocketData();
+          displayGroundData();
+        }
+  
+        if (Motor)
+          motorCommand();
+      }
     }
 
     
@@ -94,8 +101,7 @@ void loop() {
 
   if (g_GPS.available())
   {
-    if (GPSECHO)
-      Serial.write(g_GPS.read());
+    char c = g_GPS.read();
       
     if (g_GPS.newNMEAreceived())
     {
@@ -109,8 +115,6 @@ void loop() {
         g_GPS.satellites
       };
       
-      Serial.println(g_GPS.lastNMEA());   // this also sets the newNMEAreceived() flag to false
-  
       if (!g_GPS.parse(g_GPS.lastNMEA()))
       {
         return;
@@ -121,24 +125,6 @@ void loop() {
 
     
   }
-
-  Serial.print("$GPRMC,");
-  Serial.print(g_GPS.hour);Serial.print(g_GPS.minute);Serial.print(g_GPS.seconds); Serial.print("."); Serial.print(g_GPS.milliseconds);Serial.print(",");
-  Serial.print(rocketGPS.latitude,7);Serial.print(",");
-  Serial.print(g_GPS.lat);Serial.print(",");
-  Serial.print(rocketGPS.longitude,7);Serial.print(",");
-  Serial.print(g_GPS.lon);Serial.print(",");
-  Serial.print(rocketGPS.velocity);Serial.print(",");
-  Serial.print("100,");
-  Serial.print(g_GPS.day);Serial.print(g_GPS.month);Serial.print(g_GPS.year);Serial.print(",");
-  Serial.print("0.0,");
-  Serial.print("E,");
-  Serial.print("A");
-  Serial.print("*20");
-  Serial.print((char)13);
-  Serial.print((char)10);
-  
-  
  
   
   
@@ -167,10 +153,6 @@ void displayRocketData()
     }
     
     Serial.println("--------------------------");
-    Serial.print("$GPRMC,");
-    Serial.print(g_GPS.hour);Serial.print(g_GPS.minute);Serial.print(g_GPS.seconds); Serial.print("."); Serial.print(g_GPS.milliseconds);Serial.print(",");
-    Serial.print(rocketGPS.latitude);Serial.print(",");
-    Serial.print(g_GPS.lat);Serial.print(",");
     newData = false;
 }
 
@@ -229,4 +211,102 @@ void motorCommand()
   
   Serial3.print(offSouth);
   Serial3.print(risingAngle);
+}
+
+void displayNMEA() 
+{      
+    String sentence = "GPRMC,";
+    
+    if (g_GPS.hour<10)
+      sentence += "0";
+    sentence += g_GPS.hour;
+
+    if (g_GPS.minute<10)
+      sentence += "0";
+    sentence += g_GPS.minute;
+
+    if (g_GPS.seconds<10)
+      sentence += "0";
+    sentence += g_GPS.seconds; 
+    
+    sentence += "."; sentence += g_GPS.milliseconds;sentence += ",";
+    sentence += (int)rocketGPS.latitude;
+    sentence += ".";
+    if ((int)((rocketGPS.latitude - (int)rocketGPS.latitude)*1e5)<1e5)
+      sentence += "0";
+    sentence += (int)((rocketGPS.latitude - (int)rocketGPS.latitude)*1e5);
+    sentence += ",";
+    
+    sentence += g_GPS.lat;sentence += ",";
+    sentence += (int)rocketGPS.longitude;
+    sentence += ".";
+    if ((int)((rocketGPS.longitude - (int)rocketGPS.longitude)*1e5)<1e5)
+      sentence += "0";
+    sentence += (int)((rocketGPS.longitude - (int)rocketGPS.longitude)*1e5);
+    sentence += ",";
+    
+    sentence += g_GPS.lon;sentence += ",";
+    sentence += rocketGPS.velocity;sentence += ",";
+    sentence += "100,";
+
+    if (g_GPS.day<10)
+      sentence += "0";
+    sentence += g_GPS.day;
+
+    if (g_GPS.month<10)
+      sentence += "0";
+    sentence += g_GPS.month;
+    
+    sentence += g_GPS.year;
+    sentence += ",";
+    
+    sentence += "0.0,";
+    sentence += "E,";
+    sentence += "A";
+    Serial.print("$");
+    Serial.print(sentence);
+    Serial.print("*");
+    Serial.print(checkSum(sentence),HEX);
+    Serial.print((char)13);
+    Serial.print((char)10);
+
+//      Serial.println("$GPRMC,232852.0,3717.0754323,N,12146.8765908,W,0.02,100,170220,0.0,E,A*56");
+
+//    if (g_GPS.hour<10)
+//      Serial.print("0");
+//    Serial.print(g_GPS.hour);
+//
+//    if (g_GPS.minute<10)
+//      Serial.print("0");
+//    Serial.print(g_GPS.minute);
+//
+//    if (g_GPS.seconds<10)
+//      Serial.print("0");
+//    Serial.print(g_GPS.seconds); 
+//    
+//    Serial.print("."); Serial.print(g_GPS.milliseconds);Serial.print(",");
+//    Serial.print(rocketGPS.latitude,7);Serial.print(",");
+//    Serial.print(g_GPS.lat);Serial.print(",");
+//    Serial.print(rocketGPS.longitude,7);Serial.print(",");
+//    Serial.print(g_GPS.lon);Serial.print(",");
+//    Serial.print(rocketGPS.velocity);Serial.print(",");
+//    Serial.print("100,");
+//    Serial.print(g_GPS.day);Serial.print(g_GPS.month);Serial.print(g_GPS.year);Serial.print(",");
+//    Serial.print("0.0,");
+//    Serial.print("E,");
+//    Serial.print("A");
+//    Serial.print("*");
+//    Serial.print((char)13);
+//    Serial.print((char)10);
+
+}
+
+char checkSum(String str)
+{
+  char check = 0;
+  for (int i=0; i<str.length(); i++)
+  {
+    check = char (check ^ str.charAt(i));
+  }
+  return check;
 }
