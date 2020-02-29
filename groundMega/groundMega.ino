@@ -219,10 +219,17 @@ void motorCommand()
   Serial.println("--------------------------");
 
   //command motor
-  int intCommand = (int)offSouth;
+  int southInt = (int)offSouth;
   String M = "M";
-  String str = M + intCommand;
-  Serial3.print(str); Serial3.write('\r');
+  String added0 = "0";
+  String southString = String(southInt);
+  if (southString.length() < 3) {
+    String str = M + added0 + southInt;
+    Serial3.print(str); Serial3.write('\r');
+  } else {
+    String str = M + southInt;
+    Serial3.print(str); Serial3.write('\r');
+  }
 }
 
 void displayNMEA() 
