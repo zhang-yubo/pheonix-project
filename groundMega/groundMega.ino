@@ -187,12 +187,17 @@ void motorCommand()
   double offSouth = 180;
 
   
-  double risingAngle = atan2 (rocketGPS.altitude, pow(pow(latDiff,2)+pow(lonDiff,2),0.5));
-  risingAngle *= 180/3.141593 ;
+  double risingAngle = atan2 ((rocketGPS.altitude-groundGPS.altitude)*0.305, pow(pow(latDiff,2)+pow(lonDiff,2),0.5));
+  risingAngle *= 180/3.141593;
 
   offSouth = atan2 (lonDiff, latDiff);
   offSouth *= 180/3.14159;
-  offSouth += 180;
+  offSouth += 270;
+  if(offSouth<0)
+    offSouth += 360;
+  if(offSouth>360)
+    offSouth -= 360;
+    
 
 //  if (lonDiff < 0 && latDiff == 0) offNorth = 90; //if rocket directly west of groundstation
 //  else if (lonDiff > 0 && latDiff == 0) offNorth = 270; //if rocket directly east of groundstation
@@ -219,17 +224,15 @@ void motorCommand()
   Serial.println("--------------------------");
 
   //command motor
-  int southInt = (int)offSouth;
+  int intAzi = (int)offSouth;
+  int intEle = (int)risingAngle;
   String M = "M";
-  String added0 = "0";
-  String southString = String(southInt);
-  if (southString.length() < 3) {
-    String str = M + added0 + southInt;
-    Serial3.print(str); Serial3.write('\r');
-  } else {
-    String str = M + southInt;
-    Serial3.print(str); Serial3.write('\r');
-  }
+  String W = "W";
+  String space = " ";
+
+  //String str = M + intAzi;
+  String str = W + intAzi + space + intEle;
+  Serial3.print(str); Serial3.write('\r');
 }
 
 void displayNMEA() 
