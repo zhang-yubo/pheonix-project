@@ -198,7 +198,7 @@ void displayGroundData()
       Serial.print("longitude: ");Serial.println(groundGPS.longitude,8);
       Serial.print("latitude: ");Serial.println(groundGPS.latitude,8);
       Serial.print("altitude: ");Serial.println(groundGPS.altitude,3);
-      Serial.print("number satelites: ");Serial.println(groundGPS.satellites);
+      Serial.print("# of satellites: ");Serial.println(groundGPS.satellites);
     }
     else
     {
