@@ -15,7 +15,7 @@ Payload rocketGPS;
 
 Adafruit_GPS g_GPS(&Serial1); //set GPS serial to Serial1
 
-int angleOffset = 270; //motor centered at north
+int angleOffset = 180; //motor centered at north
 
 boolean GPSECHO = false;
 boolean Display = true;
@@ -59,13 +59,13 @@ void loop()
 
     //center motor north or south
 
-    if (input == 'S') //center south
+    if (input == 'S') //center south at 180 deg (degrees off north)
     {
-      angleOffset = 90;
+      angleOffset = 0;
     }
-    if (input == 'N') //center north
+    if (input == 'N') //center north at 180 deg (degrees off south)
     {
-      angleOffset = 270;
+      angleOffset = 180;
     }
     
     if (input >= 48 && input <= 57) //[0,9]
@@ -221,10 +221,18 @@ void motorCommand()
   azimuth = atan2 (lonDiff, latDiff);
   azimuth *= 180/3.14159;
   azimuth += angleOffset;
-  if(azimuth < (angleOffset - 270))
+  if (latDiff == 0 && lonDiff > 0) //if rocket directly east
+  {
     azimuth += (angleOffset + 90);
-  if(azimuth > (angleOffset + 90))
+  }
+  if (latDiff == 0 && lonDiff < 0) //if rocket directly west)
+  {
     azimuth -= (angleOffset - 90);
+  }
+  if (azimuth < 0) //if centered south and rocket to west (normally would result in negative angle)
+  {
+    azimuth += 360;
+  }
 
   //---command motor----
   
@@ -270,11 +278,11 @@ void motorCommand()
   //-------print information---------
   Serial.println("----------Motor-----------");
   Serial.print("offset: "); Serial.println(angleOffset);
-  if (angleOffset == 270)
+  if (angleOffset == 180)
   {
     Serial.print("degrees off south: "); Serial.println(azimuth);
   }
-  if (angleOffset == 90)
+  if (angleOffset == 0)
   {
     Serial.print("degrees off north: "); Serial.println(azimuth);
   }
