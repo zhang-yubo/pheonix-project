@@ -61,11 +61,11 @@ void loop()
 
     if (input == 'S') //center south
     {
-      int angleOffset = 90;
+      angleOffset = 90;
     }
     if (input == 'N') //center north
     {
-      int angleOffset = 270;
+      angleOffset = 270;
     }
     
     if (input >= 48 && input <= 57) //[0,9]
@@ -211,41 +211,77 @@ void motorCommand()
 {
   double lonDiff = (groundGPS.longitude - rocketGPS.longitude)*1110;
   double latDiff = (rocketGPS.latitude - groundGPS.latitude)*887; //reduce digits
-  double offSouth = 180;
+  double azimuth = 180;
 
   
-  double risingAngle = atan2 ((rocketGPS.altitude-groundGPS.altitude)*0.305, pow(pow(latDiff,2)+pow(lonDiff,2),0.5));
-  risingAngle *= 180/3.141593;
-  risingAngle += 180;
+  double elevation = atan2 ((rocketGPS.altitude-groundGPS.altitude)*0.305, pow(pow(latDiff,2)+pow(lonDiff,2),0.5));
+  elevation *= 180/3.141593;
+  elevation += 180;
 
-  offSouth = atan2 (lonDiff, latDiff);
-  offSouth *= 180/3.14159;
-  offSouth += angleOffset;
-  if(offSouth < (angleOffset - 270))
-    offSouth += (angleOffset + 90);
-  if(offSouth > (angleOffset + 90))
-    offSouth -= (angleOffset - 90);
+  azimuth = atan2 (lonDiff, latDiff);
+  azimuth *= 180/3.14159;
+  azimuth += angleOffset;
+  if(azimuth < (angleOffset - 270))
+    azimuth += (angleOffset + 90);
+  if(azimuth > (angleOffset + 90))
+    azimuth -= (angleOffset - 90);
+
+  //---command motor----
   
-  Serial.println("----------Motor-----------");
-  Serial.print("degrees off South: "); Serial.print(offSouth);
-  Serial.print(" rising angle: "); Serial.println(risingAngle);
-  Serial.print("latDiff: "); Serial.print(latDiff); Serial.print(" lonDiff: "); Serial.print(lonDiff);
-  Serial.println();
-  Serial.println("--------------------------");
+  long roundAzi = azimuth + 0.5;
+  int intAzi = (int)roundAzi; //round azimuth and convert to integer
 
-  //command motor, format is "Wxxx yyy", xxx = azimuth, yyy = elevation
-  int intAzi = (int)offSouth;
-  int intEle = (int)risingAngle;
-
-  String commandAzi = "W";
+  String commandAzi;
   commandAzi += intAzi;
+  int aziLength = commandAzi.length();
+  if (aziLength < 3) //if azimuth less than 3 digits, add zeros
+  {
+    commandAzi = "";
+    for (int a = 3 - aziLength; a >= 0; a--)
+    {
+      commandAzi += "0";
+    }
+    commandAzi += intAzi;
+  }
+
+  long roundEle = elevation + 0.5;
+  int intEle = (int)roundEle;
+  
   String commandEle;
   commandEle += intEle;
-  
+  int eleLength = commandEle.length();
+  if (eleLength < 3) //if elevation less than 3 digits, add zeros
+  {
+    commandEle = "";
+    for (int e = 3 - aziLength; e >= 0; e--)
+    {
+      commandEle += "0";
+    }
+    commandEle += intEle;
+  }
+
+  //---format is "Wxxx yyy", xxx = azimuth, yyy = elevation---
+  Serial3.print("W");
   Serial3.print(commandAzi);
   Serial3.print(" ");
   Serial3.print(commandEle);
   Serial3.write('\r');
+
+  //-------print information---------
+  Serial.println("----------Motor-----------");
+  Serial.print("offset: "); Serial.println(angleOffset);
+  if (angleOffset == 270)
+  {
+    Serial.print("degrees off south: "); Serial.println(azimuth);
+  }
+  if (angleOffset == 90)
+  {
+    Serial.print("degrees off north: "); Serial.println(azimuth);
+  }
+  Serial.print("rising angle: "); Serial.println(elevation);
+  Serial.print("latDiff: "); Serial.print(latDiff); Serial.print(" lonDiff: "); Serial.println(lonDiff);
+  Serial.print("command: "); Serial.print("W"); Serial.print(commandAzi); Serial.print(" "); Serial.println(commandEle);
+  Serial.println("--------------------------");
 }
 
 
