@@ -1,7 +1,6 @@
 #include <Adafruit_GPS.h>
 #include <math.h>
 
-
 typedef struct{
   int fix;
   int fixquality;
@@ -10,18 +9,19 @@ typedef struct{
   double altitude;
   double velocity;
   int satellites;
-}Payload;
+}Payload; //data type Payload stores GPS information
 Payload groundGPS;
 Payload rocketGPS;
 
 Adafruit_GPS g_GPS(&Serial1); //set GPS serial to Serial1
 
+int angleOffset = 270; //motor centered at north
 
 boolean GPSECHO = false;
 boolean Display = true;
 boolean Motor = false;
 boolean newData = false;
-boolean Receiving = true;
+boolean Receiving = false;
 
 void setup() {
   Serial.begin(115200);
@@ -32,22 +32,24 @@ void setup() {
   Serial.println("game on");
 }
 
-int period = 2000;
+int period = 2000; //information displayed every 2000 ms
 uint32_t timer = millis();
-void loop() {
-  if (Serial.available()>0)
+
+void loop()
+{
+  if (Serial.available() > 0) //input from terminal
   {
     char input = Serial.read();
 
-    if (input == 'D')
+    if (input == 'D') //toggle display of GPS information
       Display = !Display;
     
-    if (input == 'G')
+    if (input == 'G') //toggle display of raw NMEA sentences
       GPSECHO = !GPSECHO;
 
-    if (input == 'M')
+    if (input == 'M') //toggle motor control and calculations; turn controller on THEN enter M
     {
-      for (int i=0; i<10; i++)
+      for (int i=0; i<10; i++) //send a carriage return several times to allow controller to match baud rate
       {
         Serial3.write('\r');
         delay(200);
@@ -55,9 +57,20 @@ void loop() {
       Motor = !Motor;
     }
 
+    //center motor north or south
+
+    if (input == 'S') //center south
+    {
+      int angleOffset = 90;
+    }
+    if (input == 'N') //center north
+    {
+      int angleOffset = 270;
+    }
+    
     if (input >= 48 && input <= 57) //[0,9]
     {
-      period = 100 * (input-48);
+      period = 100 * (input - 48);
       if (period == 0) period = 1000;
       Serial.print("\nChanging delay to ");
       Serial.print(period);
@@ -65,46 +78,36 @@ void loop() {
     }
   }
 
-  if (timer > millis())  timer = millis();
-
-  if (millis() - timer > period) {
+  
+  if (timer > millis())
+  {
     timer = millis();
-    
   }
 
-  if (Serial2.available())
+  if (Serial2.available()) //input from Moteino
   {
     Receiving = true;
-    if(Serial2.read()=='$')
+    
+    if(Serial2.read()=='$') //delimiter marks beginning of sentence
     { 
       byte buff[22];
+      
       for (int i=0; i<22; i++)
       {
-        buff[i]=Serial2.parseInt();
+        buff[i]=Serial2.parseInt(); //store data into array
       }
       
       newData = true; 
-      rocketGPS = *(Payload*) buff;
+      rocketGPS = *(Payload*) buff; //store array into rocketGPS
+    }
 
-      if (GPSECHO)
-      {
-        displayNMEA();
-      }
-      else
-      {
-        if (Display)
-        {
-          displayRocketData();
-          displayGroundData();
-        }
-  
-        if (Motor)
-          motorCommand();
-      }
+    if (Serial2.read() !='$')
+    {
+      char empty = Serial2.read();
     }
   }
-
-  if (g_GPS.available())
+  
+  if (g_GPS.available()) //input from ground GPS
   {
     char c = g_GPS.read();
       
@@ -118,47 +121,71 @@ void loop() {
         g_GPS.altitude, 
         g_GPS.speed,
         g_GPS.satellites
-      };
+      }; //store GPS sentence into groundGPS
       
       if (!g_GPS.parse(g_GPS.lastNMEA()))
       {
         return;
-      }
-      // this also sets the newNMEAreceived() flag to false
-        
+      }// this also sets the newNMEAreceived() flag to false
+    }
+  }
+
+  if (millis() - timer > period) //every period print information/command motor
+  {
+    if (GPSECHO)
+    {
+      displayNMEA();
     }
 
+    if (Display)
+    {
+      displayRocketData();
+      displayGroundData();
+    }
+
+    if (Motor)
+    {
+      motorCommand();
+    }
     
+    timer = millis(); 
   }
- 
-  
-  
 }
+
+//---End of loop, functions below-----
 
 void displayRocketData()
 {
-    Serial.println("----------Rocket----------");
+  Serial.println("----------Rocket----------");
+  
+  if (Receiving == false)
+  {
+    Serial.println("no Moteino signal");
+  }
+  
+  if (Receiving == true)
+  {
     if (rocketGPS.fix)
     {
       Serial.print("fix: ");Serial.println(rocketGPS.fix);
-      Serial.print("fixquality: ");Serial.println(rocketGPS.fixquality);
+      Serial.print("fix quality: ");Serial.println(rocketGPS.fixquality);
       Serial.print("longitude: ");Serial.println(rocketGPS.longitude,8);
       Serial.print("latitude: ");Serial.println(rocketGPS.latitude,8);
       Serial.print("altitude: ");Serial.println(rocketGPS.altitude,3);
       Serial.print("speed: ");Serial.println(rocketGPS.velocity);
-      Serial.print("number satelites: ");Serial.println(rocketGPS.satellites);
+      Serial.print("# of satellites: ");Serial.println(rocketGPS.satellites);
     }
+    
     if (!rocketGPS.fix)
     {
       Serial.println("On board GPS not fixed");
     }
-    if (!newData)
-    {
-      Serial.println("No rocket signal");
-    }
-    
-    Serial.println("--------------------------");
+
     newData = false;
+    Receiving = false;
+  }
+  
+  Serial.println("--------------------------");
 }
 
 void displayGroundData()
@@ -189,51 +216,38 @@ void motorCommand()
   
   double risingAngle = atan2 ((rocketGPS.altitude-groundGPS.altitude)*0.305, pow(pow(latDiff,2)+pow(lonDiff,2),0.5));
   risingAngle *= 180/3.141593;
+  risingAngle += 180;
 
   offSouth = atan2 (lonDiff, latDiff);
   offSouth *= 180/3.14159;
-  offSouth += 270;
-  if(offSouth<0)
-    offSouth += 360;
-  if(offSouth>360)
-    offSouth -= 360;
-    
-
-//  if (lonDiff < 0 && latDiff == 0) offNorth = 90; //if rocket directly west of groundstation
-//  else if (lonDiff > 0 && latDiff == 0) offNorth = 270; //if rocket directly east of groundstation
-//  else
-//  {
-//    offNorth = atan2 (lonDiff, latDiff);
-//    offNorth *= 180/3.141593;
-//    //******the following calculations point north at 180 deg azimuth and use north-south as reference*****
-//    if (lonDiff < 0 && latDiff < 0) offNorth += 0; //if rocket southwest of groundstation
-//    else if (lonDiff < 0 && latDiff > 0) offNorth += 180; //if rocket north of groundstation
-//    else if (lonDiff > 0 && latDiff > 0) offNorth += 180;
-//    else if (lonDiff > 0 && latDiff < 0) offNorth +=360; //if rocket southeast of groundstation
-//  }
-
+  offSouth += angleOffset;
+  if(offSouth < (angleOffset - 270))
+    offSouth += (angleOffset + 90);
+  if(offSouth > (angleOffset + 90))
+    offSouth -= (angleOffset - 90);
   
   Serial.println("----------Motor-----------");
   Serial.print("degrees off South: "); Serial.print(offSouth);
   Serial.print(" rising angle: "); Serial.println(risingAngle);
   Serial.print("latDiff: "); Serial.print(latDiff); Serial.print(" lonDiff: "); Serial.print(lonDiff);
-
-  
-  
   Serial.println();
   Serial.println("--------------------------");
 
-  //command motor
+  //command motor, format is "Wxxx yyy", xxx = azimuth, yyy = elevation
   int intAzi = (int)offSouth;
   int intEle = (int)risingAngle;
-  String M = "M";
-  String W = "W";
-  String space = " ";
 
-  //String str = M + intAzi;
-  String str = W + intAzi + space + intEle;
-  Serial3.print(str); Serial3.write('\r');
+  String commandAzi = "W";
+  commandAzi += intAzi;
+  String commandEle;
+  commandEle += intEle;
+  
+  Serial3.print(commandAzi);
+  Serial3.print(" ");
+  Serial3.print(commandEle);
+  Serial3.write('\r');
 }
+
 
 void displayNMEA() 
 {      
