@@ -29,7 +29,7 @@
 
 SPIFlash flash(SS_FLASHMEM, 0xEF30); //EF30 for 4mbit  Windbond chip (W25X40CL)
 
-boolean GPSbuffer = true; 
+boolean GPSbuffer = false; 
 
 void setup() {
   Serial.begin(SERIAL_BAUD);
@@ -148,13 +148,20 @@ void Send()
 {
     byte buff[sizeof(GPSdata)];
     memcpy(buff, &GPSdata, sizeof(GPSdata));
-  
-    Serial1.print('$');
-  
-    for (int i=0; i<sizeof(buff); i++)
+
+    if (GPSbuffer)
     {
-      Serial1.println(buff[i]);
+      Serial1.print('$');
     }
+    else
+    {
+      Serial1.print('%');
+    }
+    
+      for (int i=0; i<sizeof(buff); i++)
+      {
+        Serial1.println(buff[i]);
+      }
 }
 
 void listenCommand()

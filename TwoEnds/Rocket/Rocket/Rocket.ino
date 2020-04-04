@@ -58,7 +58,7 @@ typedef struct{
 }TPpayload;
 TPpayload TPdata;
 
-boolean GPSbuffer = true;
+boolean GPSbuffer = false;
 
 void setup() {
   Serial.begin(SERIAL_BAUD);
@@ -154,10 +154,8 @@ void loop() {
           Serial.print("sent!");
         else Serial.print(" nothing...");
     }
-    
+
+  Blink(LED_BUILTIN,3);
   }
-
-
-
 
 }
