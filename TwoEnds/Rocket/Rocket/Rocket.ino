@@ -58,7 +58,7 @@ typedef struct{
 }TPpayload;
 TPpayload TPdata;
 
-boolean GPSbuffer = false;
+boolean GPSbuffer = true;
 
 void setup() {
   Serial.begin(SERIAL_BAUD);
@@ -121,12 +121,12 @@ void loop() {
   {
     timer = millis();
     if (radio.receiveDone())
-      {
-        if (radio.DATA[1]=='%')
-          GPSbuffer = false;
-        if (radio.DATA[1]=='$')
-          GPSbuffer = true; 
-      }
+    {
+      if (radio.DATA[1]=='%')
+        GPSbuffer = false;
+      if (radio.DATA[1]=='$')
+        GPSbuffer = true; 
+    }
     if(GPSbuffer && GPS.newNMEAreceived())
     {
         if (!GPS.parse(GPS.lastNMEA()))
@@ -144,6 +144,8 @@ void loop() {
         if (radio.sendWithRetry(GATEWAYID, (const void*)(&GPSdata), sizeof(GPSdata)))
           Serial.print("sent!");
         else Serial.print(" nothing...");
+
+        Blink(LED_BUILTIN,3);
     }
     else if(!GPSbuffer)
     {
@@ -153,9 +155,10 @@ void loop() {
         if (radio.sendWithRetry(GATEWAYID, (const void*)(&TPdata), sizeof(GPSdata)))
           Serial.print("sent!");
         else Serial.print(" nothing...");
+        
+        Blink(LED_BUILTIN,3);
     }
 
-  Blink(LED_BUILTIN,3);
   }
 
 }
