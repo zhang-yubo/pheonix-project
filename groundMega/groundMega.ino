@@ -170,7 +170,7 @@ void displayRocketData()
       Serial.print("fix: ");Serial.println(rocketGPS.fix);
       Serial.print("fix quality: ");Serial.println(rocketGPS.fixquality);
       Serial.print("longitude: ");Serial.println(rocketGPS.longitude,8);
-      Serial.print("latitude: ");Serial.println(rocketGPS.latitude,8);
+      Serial.print("latitude: ");Serial.println(rocketGPS.latitude, 8);
       Serial.print("altitude: ");Serial.println(rocketGPS.altitude,3);
       Serial.print("speed: ");Serial.println(rocketGPS.velocity);
       Serial.print("# of satellites: ");Serial.println(rocketGPS.satellites);
@@ -215,8 +215,8 @@ void motorCommand()
 
   
   double elevation = atan2 ((rocketGPS.altitude-groundGPS.altitude)*0.305, pow(pow(latDiff,2)+pow(lonDiff,2),0.5));
+  double distance = pow(pow(latDiff,2)+pow(lonDiff,2),0.5);
   elevation *= 180/3.141593;
-  elevation += 180;
 
   azimuth = atan2 (lonDiff, latDiff);
   azimuth *= 180/3.14159;
@@ -245,23 +245,31 @@ void motorCommand()
   if (aziLength < 3) //if azimuth less than 3 digits, add zeros
   {
     commandAzi = "";
-    for (int a = 3 - aziLength; a >= 0; a--)
+    for (int a = 3 - aziLength; a > 0; a--)
     {
       commandAzi += "0";
     }
     commandAzi += intAzi;
   }
 
+
   long roundEle = elevation + 0.5;
   int intEle = (int)roundEle;
   
   String commandEle;
+  if (intEle < 0)
+  {
+    commandEle += "000";
+  } else
+  {
   commandEle += intEle;
+  }
+  
   int eleLength = commandEle.length();
   if (eleLength < 3) //if elevation less than 3 digits, add zeros
   {
     commandEle = "";
-    for (int e = 3 - aziLength; e >= 0; e--)
+    for (int e = 3 - eleLength; e > 0; e--)
     {
       commandEle += "0";
     }
@@ -286,6 +294,7 @@ void motorCommand()
   {
     Serial.print("degrees off north: "); Serial.println(azimuth);
   }
+  Serial.print("distance: "); Serial.println(distance);
   Serial.print("rising angle: "); Serial.println(elevation);
   Serial.print("latDiff: "); Serial.print(latDiff); Serial.print(" lonDiff: "); Serial.println(lonDiff);
   Serial.print("command: "); Serial.print("W"); Serial.print(commandAzi); Serial.print(" "); Serial.println(commandEle);
