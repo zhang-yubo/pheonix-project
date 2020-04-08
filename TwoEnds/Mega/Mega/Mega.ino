@@ -29,7 +29,12 @@ boolean GPSECHO = false;
 boolean Display = true;
 boolean Motor = false;
 boolean newData = false;
-boolean Receiving = true;
+boolean receivingSignal = false;
+boolean receivingGPS = false;
+boolean receivingTP = false;
+
+int period = 2000;
+uint32_t timer = millis();
 
 
 void setup() {
@@ -54,8 +59,10 @@ void loop() {
   }
   if (Serial2.available())
   {
+    receivingSignal = true;
     if(Serial2.read()=='$')
     { 
+      receivingGPS = true;
       byte buff[22];
       for (int i=0; i<22; i++)
       {
@@ -64,11 +71,10 @@ void loop() {
       
       newData = true; 
       rocketGPS = *(GPSpayload*) buff;
-
-      displayRocketData();
     }
     if(Serial2.read()=='%')
     { 
+      receivingTP = true;
       byte buff[14];
       for (int i=0; i<14; i++)
       {
@@ -77,29 +83,53 @@ void loop() {
       
       newData = true; 
       TPdata = *(TPpayload*) buff;
-
-      displayTPData();
     }
+  }
+
+  if (millis() - timer > period)
+  {
+    displayRocketData();
+    displayTPData();
+    timer = millis();
   }
 }
 
 void displayRocketData()
 {
-    Serial.println("----------Rocket----------");
-    
-    Serial.print("fix: ");Serial.println(rocketGPS.fix);
-    Serial.print("fixquality: ");Serial.println(rocketGPS.fixquality);
-    Serial.print("longitude: ");Serial.println(rocketGPS.longitude,8);
-    Serial.print("latitude: ");Serial.println(rocketGPS.latitude,8);
-    Serial.print("altitude: ");Serial.println(rocketGPS.altitude,3);
-    Serial.print("speed: ");Serial.println(rocketGPS.velocity);
-    Serial.print("number satelites: ");Serial.println(rocketGPS.satellites);
+  if (receivingSignal == false) 
+  {
+    Serial.println("no signal");
+  } else
+  {
+    Serial.println("=======================");
+    Serial.println("signal detected");
+    if (receivingGPS == true)
+    {
+      Serial.println("----------Rocket----------");
+      Serial.print("fix: ");Serial.println(rocketGPS.fix);
+      Serial.print("fixquality: ");Serial.println(rocketGPS.fixquality);
+      Serial.print("longitude: ");Serial.println(rocketGPS.longitude,8);
+      Serial.print("latitude: ");Serial.println(rocketGPS.latitude,8);
+      Serial.print("altitude: ");Serial.println(rocketGPS.altitude,3);
+      Serial.print("speed: ");Serial.println(rocketGPS.velocity);
+      Serial.print("number satelites: ");Serial.println(rocketGPS.satellites);
+ 
+      receivingGPS = false;
+    }
+
+    receivingSignal = false;
+  }
 }
 
 void displayTPData()
 {
-  Serial.print("1:");Serial.println(TPdata.temperature);
-  Serial.print("2:");Serial.println(TPdata.latitude);
-  Serial.print("3:");Serial.println(TPdata.password);
-  Serial.print("4:");Serial.println(TPdata.poem);
+  if ((receivingTP == true))
+  {
+    Serial.println("---------TP------------");
+    Serial.print("1:");Serial.println(TPdata.temperature);
+    Serial.print("2:");Serial.println(TPdata.latitude);
+    Serial.print("3:");Serial.println(TPdata.password);
+    Serial.print("4:");Serial.println(TPdata.poem);
+    receivingTP = false;
+  }
 }
