@@ -127,18 +127,18 @@ void loop() {
       if (radio.DATA[1]=='$')
         GPSbuffer = true; 
     }
-    if(GPSbuffer && GPS.newNMEAreceived())
+    if(GPSbuffer)
     {
-        if (!GPS.parse(GPS.lastNMEA()))
-          return;
         
-        Serial.println(GPS.lastNMEA());   // this also sets the newNMEAreceived() flag to false
-  
-        if (!GPS.parse(GPS.lastNMEA()))   // this also sets the newNMEAreceived() flag to false
-          return;
-      
-        Serial.println("GPS!");
-        GPSdata = {GPS.fix, GPS.fixquality, GPS.latitude, GPS.longitude, GPS.altitude, GPS.speed, GPS.satellites};
+//        Serial.println(GPS.lastNMEA());   // this also sets the newNMEAreceived() flag to false
+//  
+//        if (!GPS.parse(GPS.lastNMEA()))   // this also sets the newNMEAreceived() flag to false
+//          return;
+//      
+//        Serial.println("GPS!");
+//        GPSdata = {GPS.fix, GPS.fixquality, GPS.latitude, GPS.longitude, GPS.altitude, GPS.speed, GPS.satellites};
+
+        GPSdata = {10, 20, 30, 40, 50, 60, 70};
         sendSize = sizeof(GPSdata);
 
         if (radio.sendWithRetry(GATEWAYID, (const void*)(&GPSdata), sizeof(GPSdata)))
