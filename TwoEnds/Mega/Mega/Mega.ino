@@ -86,16 +86,14 @@ void loop() {
 void displayRocketData()
 {
     Serial.println("----------Rocket----------");
-    if (rocketGPS.fix)
-    {
-      Serial.print("fix: ");Serial.println(rocketGPS.fix);
-      Serial.print("fixquality: ");Serial.println(rocketGPS.fixquality);
-      Serial.print("longitude: ");Serial.println(rocketGPS.longitude,8);
-      Serial.print("latitude: ");Serial.println(rocketGPS.latitude,8);
-      Serial.print("altitude: ");Serial.println(rocketGPS.altitude,3);
-      Serial.print("speed: ");Serial.println(rocketGPS.velocity);
-      Serial.print("number satelites: ");Serial.println(rocketGPS.satellites);
-    }
+    
+    Serial.print("fix: ");Serial.println(rocketGPS.fix);
+    Serial.print("fixquality: ");Serial.println(rocketGPS.fixquality);
+    Serial.print("longitude: ");Serial.println(rocketGPS.longitude,8);
+    Serial.print("latitude: ");Serial.println(rocketGPS.latitude,8);
+    Serial.print("altitude: ");Serial.println(rocketGPS.altitude,3);
+    Serial.print("speed: ");Serial.println(rocketGPS.velocity);
+    Serial.print("number satelites: ");Serial.println(rocketGPS.satellites);
 }
 
 void displayTPData()
