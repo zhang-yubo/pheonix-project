@@ -24,6 +24,7 @@
 #endif
 
 SPIFlash flash(SS_FLASHMEM, 0xEF30); //EF30 for 4mbit  Windbond chip (W25X40CL)
+bool promiscuousMode = false; //set to 'true' to sniff all packets on the same network
 
 #ifdef ENABLE_ATC
   RFM69_ATC radio;
@@ -73,6 +74,8 @@ void setup() {
 #ifdef ENABLE_ATC
   radio.enableAutoPower(ATC_RSSI);
 #endif
+
+  radio.promiscuous(promiscuousMode);
 
   char buff[50];
   sprintf(buff, "\nTransmitting at %d Mhz...", FREQUENCY==RF69_433MHZ ? 433 : FREQUENCY==RF69_868MHZ ? 868 : 915);
