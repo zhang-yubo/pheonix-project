@@ -88,7 +88,7 @@ TPpayload TPdata;
 
 void loop() {
   radioReceive();
-  //listenCommand();
+  listenCommand();
 }
 
 void radioReceive()
@@ -170,7 +170,7 @@ void listenCommand()
 {
     if (Serial1.available()>0)
     {
-        char input = Serial.read();
+        char input = Serial1.read();
         if (input == '$')
         {
           if (radio.sendWithRetry(NODEID, "$", 1, 0))
