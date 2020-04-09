@@ -155,7 +155,7 @@ void loop() {
         TPdata = {30.0,GPS.latitude,1.23456,1};
         sendSize = sizeof(TPdata);
         
-        if (radio.sendWithRetry(GATEWAYID, (const void*)(&TPdata), sizeof(GPSdata)))
+        if (radio.sendWithRetry(GATEWAYID, (const void*)(&TPdata), sizeof(TPdata)))
           Serial.print("sent!");
         else Serial.print(" nothing...");
         
