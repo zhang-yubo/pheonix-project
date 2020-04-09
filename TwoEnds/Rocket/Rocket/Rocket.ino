@@ -125,9 +125,9 @@ void loop() {
     timer = millis();
     if (radio.receiveDone())
     {
-      if (radio.DATA[1]=='%')
+      if (radio.DATA[0]=='%')
         GPSbuffer = false;
-      if (radio.DATA[1]=='$')
+      if (radio.DATA[0]=='$')
         GPSbuffer = true; 
     }
     if(GPSbuffer)
