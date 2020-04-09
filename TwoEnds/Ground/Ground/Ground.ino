@@ -100,16 +100,6 @@ void radioReceive()
     Serial.print(']');
     Serial.print('[');Serial.print(radio.SENDERID, DEC);Serial.print("] ");
 
-
-    if (GPSbuffer)
-    {
-      GPSdata = *(GPSpayload*)radio.DATA;
-    }
-    else
-    {
-      TPdata = *(TPpayload*)radio.DATA;
-    }
-      
     if (radio.ACKRequested())
     {
       byte theNodeID = radio.SENDERID;
@@ -130,6 +120,16 @@ void radioReceive()
         else Serial.print("nothing");
       }
     }
+
+    if (GPSbuffer)
+    {
+      GPSdata = *(GPSpayload*)radio.DATA;
+    }
+    else
+    {
+      TPdata = *(TPpayload*)radio.DATA;
+    }
+      
     Send();
     Serial.println();
     Blink(LED_BUILTIN,3);
@@ -173,14 +173,14 @@ void listenCommand()
         char input = Serial1.read();
         if (input == '$')
         {
-          if (radio.sendWithRetry(NODEID, "$", 1, 0))
+          if (radio.sendWithRetry(GATEWAYID, "$", 1, 0))
             Serial.println("Changing to GPSbuffer");
           else Serial.print("nothing");
           GPSbuffer = true;
         }
         if (input == '%')
         {
-          if (radio.sendWithRetry(NODEID, "%", 1, 0))
+          if (radio.sendWithRetry(GATEWAYID, "%", 1, 0))
             Serial.println("Changing to TPbuffer");
           else Serial.print("nothing");
           GPSbuffer = false;
