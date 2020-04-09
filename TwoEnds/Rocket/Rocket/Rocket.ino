@@ -121,11 +121,7 @@ byte ackCount=0;
 uint32_t packetCount = 0;
 
 void loop() {
-
-  if (millis() - timer > TRANSMITPERIOD) 
-  {
-    timer = millis();
-    if (radio.receiveDone())
+  if (radio.receiveDone())
     {
       if (radio.ACKRequested())
       {
@@ -152,6 +148,11 @@ void loop() {
       if (radio.DATA[0]=='$')
         GPSbuffer = true; 
     }
+
+  if (millis() - timer > TRANSMITPERIOD) 
+  {
+    timer = millis();
+    
     if(GPSbuffer)
     {
         
