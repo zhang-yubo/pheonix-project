@@ -112,10 +112,10 @@ void radioReceive()
       if (ackCount++%3==0)
       {
         Serial.print(" Pinging node ");
-        Serial.print(theNodeID);
+        Serial.print(GATEWAYID);
         Serial.print(" - ACK...");
         delay(3); //need this when sending right after reception .. ?
-        if (radio.sendWithRetry(theNodeID, "ACK TEST", 8, 0))  // 0 = only 1 attempt, no retries
+        if (radio.sendWithRetry(NODEID, "ACK TEST", 8, 0))  // 0 = only 1 attempt, no retries
           Serial.print("connected!");
         else Serial.print("nothing");
       }
@@ -153,34 +153,37 @@ void Send()
 
     if (GPSbuffer)
     {
-      Serial1.print('$');
+      Serial.print('$');
     }
     else
     {
-      Serial1.print('%');
+      Serial.print('%');
     }
     
     for (int i=0; i<sizeof(buff); i++)
     {
-      Serial1.println(buff[i]);
+      Serial.print(buff[i]);
     }
+    Serial.println();
 }
 
 void listenCommand()
 {
-    if (Serial1.available()>0)
+    if (Serial.available()>0)
     {
-        char input = Serial1.read();
+        char input = Serial.read();
         if (input == '$')
         {
-          if (radio.sendWithRetry(GATEWAYID, "$", 1, 0))
+          char b[1] = "$";
+          if (radio.sendWithRetry(GATEWAYID, b, 1, 0))
             Serial.println("Changing to GPSbuffer");
           else Serial.print("nothing");
           GPSbuffer = true;
         }
         if (input == '%')
         {
-          if (radio.sendWithRetry(GATEWAYID, "%", 1, 0))
+          char b[1] = "%";
+          if (radio.sendWithRetry(GATEWAYID, b, 1, 0))
             Serial.println("Changing to TPbuffer");
           else Serial.print("nothing");
           GPSbuffer = false;

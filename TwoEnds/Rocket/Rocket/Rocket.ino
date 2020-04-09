@@ -127,11 +127,6 @@ void loop() {
     timer = millis();
     if (radio.receiveDone())
     {
-      if (radio.DATA[0]=='%')
-        GPSbuffer = false;
-      if (radio.DATA[0]=='$')
-        GPSbuffer = true; 
-
       if (radio.ACKRequested())
       {
         byte theNodeID = radio.SENDERID;
@@ -152,6 +147,10 @@ void loop() {
           else Serial.print("nothing");
         }
       }
+      if (radio.DATA[0]=='%')
+        GPSbuffer = false;
+      if (radio.DATA[0]=='$')
+        GPSbuffer = true; 
     }
     if(GPSbuffer)
     {
