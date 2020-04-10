@@ -105,20 +105,6 @@ void radioReceive()
       byte theNodeID = radio.SENDERID;
       radio.sendACK();
       Serial.print(" - ACK sent.");
-
-      // When a node requests an ACK, respond to the ACK
-      // and also send a packet requesting an ACK (every 3rd one only)
-      // This way both TX/RX NODE functions are tested on 1 end at the GATEWAY
-      if (ackCount++%3==0)
-      {
-        Serial.print(" Pinging node ");
-        Serial.print(GATEWAYID);
-        Serial.print(" - ACK...");
-        delay(3); //need this when sending right after reception .. ?
-        if (radio.sendWithRetry(NODEID, "ACK TEST", 8, 0))  // 0 = only 1 attempt, no retries
-          Serial.print("connected!");
-        else Serial.print("nothing");
-      }
     }
 
     if (GPSbuffer)
