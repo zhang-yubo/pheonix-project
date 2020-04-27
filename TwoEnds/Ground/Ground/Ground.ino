@@ -153,25 +153,25 @@ void Send()
 
     if (GPSbuffer)
     {
-      Serial.print('$');
+      Serial1.print('$');
     }
     else
     {
-      Serial.print('%');
+      Serial1.print('%');
     }
     
     for (int i=0; i<sizeof(buff); i++)
     {
-      Serial.print(buff[i]);
+      Serial1.print(buff[i]);
     }
-    Serial.println();
+    Serial1.println();
 }
 
 void listenCommand()
 {
-    if (Serial.available()>0)
+    if (Serial1.available()>0)
     {
-        char input = Serial.read();
+        char input = Serial1.read();
         if (input == '$')
         {
           char b[1] = "$";
