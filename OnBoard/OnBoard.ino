@@ -55,7 +55,6 @@ SPIFlash flash(SS_FLASHMEM, 0xEF30); //EF30 for 4mbit  Windbond chip (W25X40CL)
 
 
 Adafruit_GPS GPS(&Serial1);
-
 boolean GPSECHO = false;
 boolean SEND = true;
 
@@ -104,25 +103,18 @@ void setup()
 //GPS
   // 9600 NMEA is the default baud rate for Adafruit MTK GPS's- some use 4800
   GPS.begin(9600);
-
-  // uncomment this line to turn on RMC (recommended minimum) and GGA (fix data) including altitude
   GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
-  // uncomment this line to turn on only the "minimum recommended" data
-  //GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCONLY);
-  // For parsing data, we don't suggest using anything but either RMC only or RMC+GGA since
-  // the parser doesn't care about other sentences at this time
-
   // Set the update rate
   GPS.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ);   // 1 Hz update rate
   // For the parsing code to work nicely and have time to sort thru the data, and
   // print it out we don't suggest using anything higher than 1 Hz
 
   // Request updates on antenna status, comment out to keep quiet
-  GPS.sendCommand(PGCMD_ANTENNA);
+  //GPS.sendCommand(PGCMD_ANTENNA);
 
   delay(1000);
   // Ask for firmware version
-  Serial.println(PMTK_Q_RELEASE);
+  Serial1.println(PMTK_Q_RELEASE);
 }
 
 void Blink(byte PIN, int DELAY_MS)
@@ -134,9 +126,10 @@ void Blink(byte PIN, int DELAY_MS)
 }
 
 uint32_t timer = millis();
+
 void loop()
 {
-  if (Serial.available()>0)
+  if (Serial.available() > 0)
   {
     char input = Serial.read();
     
@@ -159,45 +152,29 @@ void loop()
 
     if (input == 'S') 
     SEND = !SEND;
-
   }
+
+
   char c = GPS.read();
-  // if you want to debug, this is a good time to do it!
-  if ((c) && (GPSECHO))
+  if (GPSECHO)
+    if (c) Serial.print(c); //if a sentence is received, we can check the checksum, parse it...
+  if (GPS.newNMEAreceived())
   {
-    Serial.write(c);
-
-  // if a sentence is received, we can check the checksum, parse it...
-    if (GPS.newNMEAreceived()) {
-      // a tricky thing here is if we print the NMEA sentence, or data
-      // we end up not listening and catching other sentences!
-      // so be very wary if using OUTPUT_ALLDATA and trytng to print out data
-      Serial.println(GPS.lastNMEA());   // this also sets the newNMEAreceived() flag to false
-  
-      if (!GPS.parse(GPS.lastNMEA()))   // this also sets the newNMEAreceived() flag to false
-        return;  // we can fail to parse a sentence in which case we should just wait for another
-    }
+    // a tricky thing here is if we print the NMEA sentence, or data
+    // we end up not listening and catching other sentences!
+    // so be very wary if using OUTPUT_ALLDATA and trytng to print out data
+    Serial.println(GPS.lastNMEA());   // this also sets the newNMEAreceived() flag to false
+    if (!GPS.parse(GPS.lastNMEA()))   // this also sets the newNMEAreceived() flag to false
+      return;  // we can fail to parse a sentence in which case we should just wait for another
   }
 
-  if (timer > millis())  timer = millis();
+  if (timer > millis())  timer = millis(); // if millis() or timer wraps around, just reset it
 
   if (millis() - timer > TRANSMITPERIOD) {
     timer = millis();
-    if (GPS.newNMEAreceived()) 
-    {
-      Serial.println(GPS.lastNMEA());   // this also sets the newNMEAreceived() flag to false
-  
-      if (!GPS.parse(GPS.lastNMEA()))   // this also sets the newNMEAreceived() flag to false
-        return;
-      
-      Serial.println("GPS!");
-      data = {GPS.fix, GPS.fixquality, GPS.latitude, GPS.longitude, GPS.altitude, GPS.speed, GPS.satellites};
-      sendSize = sizeof(data);
-    }
-    else
-    {
-       data = {0};
-    }
+    
+    Serial.println("GPS!");
+    data = {GPS.fix, GPS.fixquality, GPS.latitude, GPS.longitude, GPS.altitude, GPS.speed, GPS.satellites};
 
     sendSize = sizeof(data);
 
@@ -255,12 +232,21 @@ void loop()
 
 void displayData()
 {   
-    Serial.print("fix: ");Serial.print(data.fix);
-    Serial.print("fixquality: ");Serial.print(data.fixquality);
-    Serial.print("longitude: ");Serial.print(data.longitude);
-    Serial.print("latitude: ");Serial.print(data.latitude);
-    Serial.print("altitude: ");Serial.print(data.altitude);
-    Serial.print("speed: ");Serial.println(data.velocity);
-    Serial.print("number satelites: ");Serial.print(data.satellites);
+    Serial.print("fix: ");Serial.println(GPS.fix);
+    Serial.print("fixquality: ");Serial.println(GPS.fixquality);
+    Serial.print("longitude: ");Serial.println(GPS.longitude);
+    Serial.print("latitude: ");Serial.println(GPS.latitude);
+    Serial.print("altitude: ");Serial.println(GPS.altitude);
+    Serial.print("speed: ");Serial.println(GPS.speed);
+    Serial.print("number satelites: ");Serial.println(GPS.satellites);
+    Serial.println();
+  
+    Serial.print("sentfix: ");Serial.println(data.fix);
+    Serial.print("sentfixquality: ");Serial.println(data.fixquality);
+    Serial.print("sentlongitude: ");Serial.println(data.longitude);
+    Serial.print("sentlatitude: ");Serial.println(data.latitude);
+    Serial.print("sentaltitude: ");Serial.println(data.altitude);
+    Serial.print("sentspeed: ");Serial.println(data.velocity);
+    Serial.print("sentnumber satelites: ");Serial.println(data.satellites);
     Serial.println();
 }
