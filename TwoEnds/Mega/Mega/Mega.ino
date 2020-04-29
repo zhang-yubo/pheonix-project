@@ -60,7 +60,8 @@ void loop() {
   if (Serial2.available())
   {
     receivingSignal = true;
-    if(Serial2.read()=='$')
+    char input = Serial2.read();
+    if(input=='$')
     { 
       receivingGPS = true;
       byte buff[22];
@@ -72,7 +73,7 @@ void loop() {
       newData = true; 
       rocketGPS = *(GPSpayload*) buff;
     }
-    if(Serial2.read()=='%')
+    if(input=='%')
     { 
       receivingTP = true;
       byte buff[14];
@@ -99,7 +100,8 @@ void displayRocketData()
   if (receivingSignal == false) 
   {
     Serial.println("no signal");
-  } else
+  } 
+  else
   {
     Serial.println("=======================");
     Serial.println("signal detected");
