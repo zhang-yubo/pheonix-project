@@ -105,6 +105,20 @@ void radioReceive()
       byte theNodeID = radio.SENDERID;
       radio.sendACK();
       Serial.print(" - ACK sent.");
+
+      // When a node requests an ACK, respond to the ACK
+      // and also send a packet requesting an ACK (every 3rd one only)
+      // This way both TX/RX NODE functions are tested on 1 end at the GATEWAY
+      if (ackCount++%3==0)
+      {
+        Serial.print(" Pinging node ");
+        Serial.print(GATEWAYID);
+        Serial.print(" - ACK...");
+        delay(3); //need this when sending right after reception .. ?
+        if (radio.sendWithRetry(NODEID, "ACK TEST", 8, 0))  // 0 = only 1 attempt, no retries
+          Serial.print("connected!");
+        else Serial.print("nothing");
+      }
     }
 
     if (GPSbuffer)
@@ -134,22 +148,29 @@ void Blink(byte PIN, int DELAY_MS)
 
 void Send()
 {
-    byte buff[sizeof(GPSdata)];
-    memcpy(buff, &GPSdata, sizeof(GPSdata));
-
     if (GPSbuffer)
     {
+      byte buff[sizeof(GPSdata)];
+      memcpy(buff, &GPSdata, sizeof(GPSdata));
+
       Serial1.print('$');
+      for (int i=0; i<sizeof(buff); i++)
+      {
+        Serial1.print(buff[i]);
+      }
     }
     else
     {
+      byte buff[sizeof(TPdata)];
+      memcpy(buff, &TPdata, sizeof(TPdata));
+      
       Serial1.print('%');
+      for (int i=0; i<sizeof(buff); i++)
+      {
+        Serial1.print(buff[i]);
+      }
     }
     
-    for (int i=0; i<sizeof(buff); i++)
-    {
-      Serial1.print(buff[i]);
-    }
     Serial1.println();
 }
 
