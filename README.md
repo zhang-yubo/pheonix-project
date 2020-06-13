@@ -1,6 +1,6 @@
 # pheonix-project
 
-## The simplest but most functional GPS-only software:
+## Base, functional software:
 Upload OnBoard.ino to the Moteino on the rocket.
 Upload GroundStation.ino to the Moteino on the ground.
 Upload GroundMega.ino to the Arduino Mega on the ground.
