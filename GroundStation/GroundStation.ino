@@ -25,7 +25,6 @@
 #endif
 
 SPIFlash flash(SS_FLASHMEM, 0xEF30); //EF30 for 4mbit  Windbond chip (W25X40CL)
-bool promiscuousMode = false; //set to 'true' to sniff all packets on the same network
 
 void setup() {
   Serial.begin(SERIAL_BAUD);
@@ -35,7 +34,6 @@ void setup() {
 #ifdef IS_RFM69HW_HCW
   radio.setHighPower(); //must include this only for RFM69HW/HCW!
 #endif
-  radio.promiscuous(promiscuousMode);
   
   char buff[50];
   sprintf(buff, "\nListening at %d Mhz...", FREQUENCY==RF69_433MHZ ? 433 : FREQUENCY==RF69_868MHZ ? 868 : 915);
@@ -153,10 +151,7 @@ void radioReceive()
     Serial.print(++packetCount);
     Serial.print(']');
     Serial.print('[');Serial.print(radio.SENDERID, DEC);Serial.print("] ");
-    if (promiscuousMode)
-    {
-      Serial.print("to [");Serial.print(radio.TARGETID, DEC);Serial.print("] ");
-    }
+    
     data = *(Payload*)radio.DATA;
     
     Serial.print("   [RX_RSSI:");Serial.print(radio.RSSI);Serial.print("]");
