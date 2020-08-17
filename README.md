@@ -12,6 +12,8 @@ Upload Rocket.ino to the Moteino on the rocket.
 Upload Ground.ino to the Moteino on the ground.
 Upload Mega.ino to the Arduino Mega on the ground.
 
+NOTE: This software currently needs version 1.4.0 of the RFM69 library in order to compile.
+
 This set sends one message from Rocket at a time, but can handle different data struct formats. Different messages can be requested by inputting a command to Mega, which will be sent to Rocket.
 
 ## combinedMessages
