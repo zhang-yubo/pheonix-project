@@ -4,14 +4,12 @@
 #include <SPI.h>
 #include <SoftwareSerial.h>
 
-
 #define NODEID        1
 #define NETWORKID     100
 #define GATEWAYID     2
 #define FREQUENCY     RF69_433MHZ
 #define ENCRYPTKEY    "VCHS"
 #define IS_RFM69HW_HCW  //uncomment only for RFM69HW/HCW! Leave out if you have RFM69W/CW!
-
 
 #define ENABLE_ATC    
 #define SERIAL_BAUD   115200
@@ -26,16 +24,12 @@
   RFM69 radio;
 #endif
 
-
 SPIFlash flash(SS_FLASHMEM, 0xEF30); //EF30 for 4mbit  Windbond chip (W25X40CL)
-bool promiscuousMode = false; //set to 'true' to sniff all packets on the same network
-
-boolean GPSbuffer = false;
 
 typedef struct{
   int ID;
   int intOne;
-  int ineTwo;
+  int intTwo;
   double doubleThree;
   double doubleFour;
   double doubleFive;
@@ -45,6 +39,9 @@ typedef struct{
 
 payload data;
 
+//setting booleans
+boolean displayData = false;
+
 void setup() {
   Serial.begin(SERIAL_BAUD);
   Serial1.begin(115200);
@@ -53,7 +50,7 @@ void setup() {
   #ifdef IS_RFM69HW_HCW
     radio.setHighPower(); //must include this only for RFM69HW/HCW!
   #endif
-  radio.promiscuous(promiscuousMode);
+
   char buff[50];
   sprintf(buff, "\nListening at %d Mhz...", FREQUENCY==RF69_433MHZ ? 433 : FREQUENCY==RF69_868MHZ ? 868 : 915);
   Serial.println(buff);
@@ -81,8 +78,48 @@ byte ackCount=0;
 uint32_t packetCount = 0;
 
 void loop() {
-  listenCommand();
+  listenCommand(); //read for any user input from terminal
   radioReceive();
+}
+
+
+void Blink(byte PIN, int DELAY_MS)
+{
+  pinMode(PIN, OUTPUT);
+  digitalWrite(PIN,HIGH);
+  delay(DELAY_MS);
+  digitalWrite(PIN,LOW);
+}
+
+void listenCommand()
+{
+  if (Serial.available() > 0)
+  {
+    char input = Serial.read();
+
+    if (input == 'D') //toggle displaying data to terminal
+    {
+      displayData = !displayData;
+    }
+    
+    if (input == 'i')
+    {
+      Serial.print("DeviceID: ");
+      word jedecid = flash.readDeviceId();
+      Serial.println(jedecid, HEX);
+    }
+    
+    if (input == 't') //print temperature
+    {
+      byte temperature =  radio.readTemperature(-1); // -1 = user cal factor, adjust for correct ambient
+      byte fTemp = 1.8 * temperature + 32; // 9/5=1.8
+      Serial.print( "Radio Temp is ");
+      Serial.print(temperature);
+      Serial.print("C, ");
+      Serial.print(fTemp); //converting to F loses some resolution, obvious when C is on edge between 2 values (ie 26C=78F, 27C=80F)
+      Serial.println('F');
+    }
+  }
 }
 
 void radioReceive()
@@ -93,10 +130,6 @@ void radioReceive()
     Serial.print(++packetCount);
     Serial.print(']');
     Serial.print('[');Serial.print(radio.SENDERID, DEC);Serial.print("] ");
-    if (promiscuousMode)
-    {
-      Serial.print("to [");Serial.print(radio.TARGETID, DEC);Serial.print("] ");
-    }
 
     data = *(payload*)radio.DATA;
 
@@ -122,54 +155,36 @@ void radioReceive()
         else Serial.print("nothing");
       }
     }
-
-    Send();
+    
+    Blink(LED_BUILTIN,3); //flash the LED
+    displayAndSend();
     Serial.println();
-    Blink(LED_BUILTIN,3);
+  }
+}
+
+
+void displayAndSend()
+{
+  if (displayData)
+  {
+    Serial.println();
+    Serial.print("Size: "); Serial.println(sizeof(data));
+    Serial.print("ID: "); Serial.println(data.ID);
+    Serial.print("fix: ");Serial.println(data.intOne);
+    Serial.print("fix quality: ");Serial.println(data.intTwo);
+    Serial.print("longitude: ");Serial.println(data.doubleThree);
+    Serial.print("latitude: ");Serial.println(data.doubleFour);
+    Serial.print("altitude: ");Serial.println(data.doubleFive);
+    Serial.print("speed: ");Serial.println(data.doubleSix);
+    Serial.print("number of satellites: ");Serial.println(data.intSeven);
   }
   
-}
-
-void Blink(byte PIN, int DELAY_MS)
-{
-  pinMode(PIN, OUTPUT);
-  digitalWrite(PIN,HIGH);
-  delay(DELAY_MS);
-  digitalWrite(PIN,LOW);
-}
-
-void Send()
-{
   byte buff[sizeof(data)];
   memcpy(buff, &data, sizeof(data));
   
-  Serial1.print('@');
+  Serial1.print('$'); //delimiter to signify start of sentence to Mega
   for (int i=0; i<sizeof(buff); i++)
   {
-    Serial1.print(buff[i]);
+    Serial1.println(buff[i]);
   }
-}
-
-void listenCommand()
-{
-    if (Serial1.available()>0)
-    {
-        char input = Serial1.read();
-        if (input == '$')
-        {
-          char b[1] = "$";
-          if (radio.sendWithRetry(GATEWAYID, b, 1, 0))
-            Serial.println("Changing to GPSbuffer");
-          else Serial.print("nothing");
-          GPSbuffer = true;
-        }
-        if (input == '%')
-        {
-          char b[1] = "%";
-          if (radio.sendWithRetry(GATEWAYID, b, 1, 0))
-            Serial.println("Changing to TPbuffer");
-          else Serial.print("nothing");
-          GPSbuffer = false;
-        }
-    }
 }
