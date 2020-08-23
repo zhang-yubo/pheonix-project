@@ -15,6 +15,7 @@ typedef struct{
 payload groundGPS;
 payload rocketData; //stores data from rocket for sorting into data type
 payload rocketGPS;
+payload rocketTP;
 
 Adafruit_GPS g_GPS(&Serial1); //set GPS serial to Serial1
 
@@ -29,6 +30,7 @@ boolean Motor = false;
 boolean newData = false;
 boolean Receiving = false;
 boolean receivingGPS = false;
+boolean receivingTP = false;
 
 void setup() {
   Serial.begin(115200);
@@ -70,9 +72,13 @@ void loop()
       //read ID and store as appropriate type of data
       if (rocketData.ID == 1) //if GPS data ID "1" is detected
       {
-        //memcpy(&rocketData, &rocketGPS, sizeof(rocketData)); //store rocketData as GPS data
-        rocketGPS = rocketData;
+        rocketGPS = rocketData; //identify rocket data as GPS data and store accordingly
         receivingGPS = true;
+      }
+      else if (rocketData.ID == 2)
+      {
+        rocketTP = rocketData;
+        receivingTP = true;
       }
       else
       {
@@ -186,13 +192,14 @@ void displayRocketData()
 {
   Serial.println("----------Rocket----------");
   
-  if (Receiving == false)
+  if (Receiving == false) 
   {
     Serial.println("no Moteino signal");
   }
   
-  if (Receiving == true)
+  if (Receiving == true) 
   {
+    //-----GPS data------
     if (receivingGPS == false)
     {
       Serial.println("Rocket GPS data not received");
@@ -203,6 +210,7 @@ void displayRocketData()
       Serial.println("------GPS------");
       if (rocketGPS.intOne)
       {
+        Serial.print("ID: "); Serial.println(rocketGPS.ID);
         Serial.print("fix: ");Serial.println(rocketGPS.intOne);
         Serial.print("fix quality: ");Serial.println(rocketGPS.intTwo);
         Serial.print("longitude: ");Serial.println(rocketGPS.doubleThree, 8);
@@ -218,6 +226,27 @@ void displayRocketData()
       }
 
       receivingGPS = false;
+    }
+
+    //------TP data-------
+    if (receivingTP == false)
+    {
+      Serial.println("Rocket TP data not received");
+    }
+    
+    if (receivingTP == true)
+    {
+      Serial.println("------TP------");
+      Serial.print("ID: "); Serial.println(rocketTP.ID);
+      Serial.print("int1: ");Serial.println(rocketTP.intOne);
+      Serial.print("int2: ");Serial.println(rocketTP.intTwo);
+      Serial.print("double3: ");Serial.println(rocketTP.doubleThree, 8);
+      Serial.print("double4: ");Serial.println(rocketTP.doubleFour, 8);
+      Serial.print("double5: ");Serial.println(rocketTP.doubleFive, 3);
+      Serial.print("double6: ");Serial.println(rocketTP.doubleSix);
+      Serial.print("int7: ");Serial.println(rocketTP.intSeven);
+
+      receivingTP = false;
     }
 
     newData = false;
@@ -238,8 +267,7 @@ void displayGroundData()
       Serial.print("longitude: ");Serial.println(groundGPS.doubleThree,8);
       Serial.print("latitude: ");Serial.println(groundGPS.doubleFour,8);
       Serial.print("altitude: ");Serial.println(groundGPS.doubleFive,3);
-      Serial.print("# of satellites: ");Serial.println(groundGPS.doubleSix);
-      Serial.print("Size of Ground GPS message: ");Serial.println(sizeof(groundGPS));
+      Serial.print("# of satellites: ");Serial.println(groundGPS.intSeven);
     }
     else
     {
