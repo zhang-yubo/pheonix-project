@@ -53,12 +53,15 @@ typedef struct{ //currently set to number ID + standard NMEA sentence format
   int intSeven;
 } payload;
 payload GPSdata;
+payload TPdata;
+payload data;
 
 Adafruit_GPS GPS(&Serial1);
 
 //setting booleans
 boolean GPSECHO = false;
 boolean SEND = true;
+boolean displayData = false;
 boolean sampleData = false;
 
 //--------SETUP-----------
@@ -132,13 +135,14 @@ void Blink(byte PIN, int DELAY_MS)
 }
 
 uint32_t timer = millis();
+uint32_t TPtimer = timer + TRANSMITPERIOD/2;
 
 //----------LOOP-----------
 void loop()
 {
   listenCommand(); //read user inputs from terminal for any setting changes
   retrieveGPSData(); //retrieve information from GPS
-  processAndSend(); //package data into struct GPSdata and send it (or display it)
+  packageData(); //package data into struct and send it (or display it)
 }
 
 
@@ -151,6 +155,9 @@ void listenCommand()
     if (input == 'G')  //echo raw NMEA sentences to terminal
       GPSECHO = !GPSECHO;
 
+    if (input == 'D')
+      displayData = !displayData; //toggle displaying data to terminal
+
     if (input == 'F') //toggle using sample values instead of real GPS data
       sampleData = !sampleData;
 
@@ -159,7 +166,7 @@ void listenCommand()
     if (input == 'e') //e=disable encryption
       radio.encrypt(null);
 
-    if (input >= 48 && input <= 57) //[0,9], change how often Rocket sends
+    if (input >= 48 && input <= 57) //[0,9], change how often Rocket sends in hundreds of ms
     {
       TRANSMITPERIOD = 100 * (input-48);
       if (TRANSMITPERIOD == 0) TRANSMITPERIOD = 1000;
@@ -189,77 +196,104 @@ void retrieveGPSData()
   }
 }
 
-void processAndSend()
+void packageData()
 {
   if (timer > millis())  timer = millis(); //reset timer if it exceeds millis
 
-  if (millis() - timer > TRANSMITPERIOD) {
-    timer = millis();
+  //----GPS data-----
+  if (millis() - timer > TRANSMITPERIOD)
+  {
+    timer = millis(); //reset timer
 
     if (sampleData)
     {
-      Serial.println("Sample data");
+      Serial.println("Sample GPS data");
       GPSdata = {1, 1, 20, 30, 40, 50, 60, 70};
     }
     else
     {
-      Serial.println("GPS data");
+      Serial.println("True GPS data");
       GPSdata = {1, GPS.fix, GPS.fixquality, GPS.latitude, GPS.longitude, GPS.altitude, GPS.speed, GPS.satellites};
     }
-    
-    sendSize = sizeof(GPSdata);
 
-    if (SEND)
+    data = GPSdata;
+
+    sendAndDisplay();
+  }
+
+  //----TP data-----
+  if (millis() - TPtimer > TRANSMITPERIOD)
+  {
+    TPtimer = timer + TRANSMITPERIOD/2;
+
+    if (sampleData)
     {
-      if (radio.receiveDone())
-      {
-        Serial.print('[');Serial.print(radio.SENDERID, DEC);Serial.print("] ");
-        for (byte i = 0; i < radio.DATALEN; i++)
-          Serial.print((char)radio.DATA[i]);
-        Serial.print("   [RX_RSSI:");Serial.print(radio.RSSI);Serial.print("]");
-      
-        if (radio.ACKRequested())
-        {
-          radio.sendACK();
-          Serial.print(" - ACK sent");
-        }
-        Blink(LED_BUILTIN,3);
-        Serial.println();
-      }
-    
-      //send FLASH 
-      if(sendSize==0)
-      {
-        sprintf(buff, "FLASH_MEM_ID:0x%X", flash.readDeviceId());
-        byte buffLen=strlen(buff);
-        if (radio.sendWithRetry(GATEWAYID, buff, buffLen))
-          Serial.print(" connected!");
-        else Serial.print(" nothing...");
-      }
-      else
-      {
-        Serial.print("Sending[");
-        Serial.print(sendSize);
-        Serial.print("]: ");
-        for(int i = 0; i < sendSize; i++)
-          Serial.print(i);
-    
-        if (radio.sendWithRetry(GATEWAYID, (const void*)(&GPSdata), sizeof(GPSdata)))
-          Serial.print("sent!");
-        else Serial.print(" nothing...");
-      }
-      Serial.println();
-      Blink(LED_BUILTIN,3);
+      Serial.println("Sample TP data");
+      TPdata = {2, 100, 200, 300, 400, 500, 600, 700};
     }
     else
     {
-       displayData();
+      Serial.println("True TP data");
+      TPdata = {2, 110, 220, 330, 440, 550, 660, 770};
     }
+
+    data = TPdata;
+
+    sendAndDisplay();
   }
 }
 
-void displayData()
-{   
+void sendAndDisplay()
+{
+  sendSize = sizeof(data);
+
+  if (SEND)
+  {
+    //-----send data------
+    if (radio.receiveDone())
+    {
+      Serial.print('[');Serial.print(radio.SENDERID, DEC);Serial.print("] ");
+      for (byte i = 0; i < radio.DATALEN; i++)
+        Serial.print((char)radio.DATA[i]);
+      Serial.print("   [RX_RSSI:");Serial.print(radio.RSSI);Serial.print("]");
+    
+      if (radio.ACKRequested())
+      {
+        radio.sendACK();
+        Serial.print(" - ACK sent");
+      }
+      Blink(LED_BUILTIN,3);
+      Serial.println();
+    }
+    
+    //send FLASH 
+    if(sendSize==0)
+    {
+      sprintf(buff, "FLASH_MEM_ID:0x%X", flash.readDeviceId());
+      byte buffLen=strlen(buff);
+      if (radio.sendWithRetry(GATEWAYID, buff, buffLen))
+        Serial.print(" connected!");
+      else Serial.print(" nothing...");
+    }
+    else
+    {
+      Serial.print("Sending[");
+      Serial.print(sendSize);
+      Serial.print("]: ");
+      for(int i = 0; i < sendSize; i++)
+        Serial.print(i);
+  
+      if (radio.sendWithRetry(GATEWAYID, (const void*)(&data), sizeof(data)))
+        Serial.print("sent!");
+      else Serial.print(" nothing...");
+    }
+      Serial.println();
+    Blink(LED_BUILTIN,3);
+  }
+
+  //---display data----
+  if (displayData)
+  {
     Serial.print("fix: ");Serial.println(GPS.fix);
     Serial.print("fixquality: ");Serial.println(GPS.fixquality);
     Serial.print("longitude: ");Serial.println(GPS.longitude);
@@ -278,4 +312,5 @@ void displayData()
     Serial.print("sentspeed: ");Serial.println(GPSdata.doubleSix);
     Serial.print("sentnumber satelites: ");Serial.println(GPSdata.intSeven);
     Serial.println();
+  }
 }
