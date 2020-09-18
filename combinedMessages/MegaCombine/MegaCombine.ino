@@ -59,9 +59,10 @@ void loop()
     
     if (Serial2.read() == '$') //delimiter marks beginning of sentence
     { 
-      byte buff[24];
+      int buffLen = Serial2.read();
+      byte buff[buffLen];
       
-      for (int i=0; i<24; i++)
+      for (int i=0; i<buffLen; i++)
       {
         buff[i]=Serial2.parseInt(); //store data into "buff" array
       }

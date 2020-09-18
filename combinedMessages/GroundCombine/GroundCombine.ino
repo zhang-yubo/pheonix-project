@@ -183,6 +183,7 @@ void displayAndSend()
   memcpy(buff, &data, sizeof(data));
   
   Serial1.print('$'); //delimiter to signify start of sentence to Mega
+  Serial1.print(sizeof(buff));
   for (int i=0; i<sizeof(buff); i++)
   {
     Serial1.println(buff[i]);
